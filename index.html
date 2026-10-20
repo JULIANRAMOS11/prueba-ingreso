@@ -97,19 +97,6 @@
           </p>
         </div>
 
-        <div class="security-warning-box">
-          <div class="warning-icon-wrapper">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <div class="warning-text">
-            <strong>SISTEMA DE SUPERVISIÓN Y SEGURIDAD ANTIFRAUDE ACTIVO</strong>
-            <p>
-              • <strong>Tiempo límite:</strong> Dispone de exactamente <strong>1 hora y 30 minutos (90 minutos)</strong> para resolver la prueba. Un cronómetro en vivo le indicará el tiempo restante y, al agotarse, sus respuestas se enviarán automáticamente.<br>
-              • <strong>Permanencia obligatoria en la página:</strong> No está permitido cambiar de pestaña, minimizar el navegador, pasar a otra ventana (Alt+Tab), copiar, pegar o abrir herramientas de desarrollo. <strong>Cualquier cambio de página anula la prueba de forma inmediata e irreversible.</strong>
-            </p>
-          </div>
-        </div>
-
         <form id="candidateLoginForm" class="login-form">
           <div class="form-row">
             <div class="form-group">
@@ -166,11 +153,51 @@
             </div>
           </div>
 
-          <div class="form-check terms-check">
-            <input type="checkbox" id="acceptSupervisionCheck" required class="checkbox-custom">
-            <label for="acceptSupervisionCheck" class="terms-label">
-              Confirmo que realizaré esta prueba de manera individual, sin asistencias externas ni Inteligencia Artificial, y acepto el protocolo estricto de anulación por cambio de ventana o copiado.
-            </label>
+          <!-- REGLAS DE SEGURIDAD ESTRICTA Y CASILLA OBLIGATORIA (TACHAR PARA INICIAR) -->
+          <div id="securityWarningBox" class="security-warning-box">
+            <div class="security-warning-header">
+              <div class="warning-icon-wrapper">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div class="warning-title-block">
+                <strong>SISTEMA DE SUPERVISIÓN ESTRICTA Y PROHIBICIONES ANTIFRAUDE</strong>
+                <span class="warning-subtitle">Lectura y confirmación obligatoria para habilitar el inicio de la prueba</span>
+              </div>
+            </div>
+
+            <ul class="security-rules-list">
+              <li>
+                <span class="rule-icon">⏱️</span>
+                <span><strong>Tiempo límite inflexible:</strong> Dispone de exactamente <strong>1 hora y 30 minutos (90 minutos)</strong> continuos. Un cronómetro en vivo marcará el tiempo y al expirar sus respuestas se enviarán automáticamente.</span>
+              </li>
+              <li>
+                <span class="rule-icon">🚫</span>
+                <span><strong>Clic derecho ESTRICTAMENTE PROHIBIDO:</strong> El uso del clic derecho y menús contextuales está totalmente deshabilitado y bloqueado. Intentar abrirlo dentro del examen será registrado como intento de fraude y anulará su prueba de inmediato.</span>
+              </li>
+              <li>
+                <span class="rule-icon">🖥️</span>
+                <span><strong>Permanencia obligatoria en la pantalla:</strong> Prohibido cambiar de pestaña, minimizar el navegador, abrir otra ventana (Alt+Tab) o perder el foco. <strong>Cualquier salida de la página anula la prueba de forma inmediata e irreversible.</strong></span>
+              </li>
+              <li>
+                <span class="rule-icon">📋</span>
+                <span><strong>Prohibido copiar, pegar o asistencias de IA:</strong> No se permite copiar texto de las preguntas ni pegar información externa. Queda prohibido el uso de ChatGPT, Gemini u otras inteligencias artificiales o personas de soporte.</span>
+              </li>
+              <li>
+                <span class="rule-icon">⚖️</span>
+                <span><strong>Anulación definitiva e inapelable:</strong> Cualquier infracción detectada cancelará la evaluación de forma automática y registrará el incidente con fecha y hora en el sistema de Talento Humano.</span>
+              </li>
+            </ul>
+
+            <!-- CASILLA PARA TACHAR / MARCAR (ACUERDO OBLIGATORIO) -->
+            <div class="security-ack-box">
+              <label for="acceptSupervisionCheck" class="security-ack-label">
+                <input type="checkbox" id="acceptSupervisionCheck" required class="checkbox-custom ack-checkbox">
+                <span class="ack-text">
+                  <span class="ack-title">HE LEÍDO, COMPRENDO Y ACEPTO TODAS LAS CONDICIONES ANTERIORES</span>
+                  <span class="ack-desc">Certifico que leí atentamente las normas de seguridad (incluyendo la <strong>prohibición estricta de clic derecho</strong>, tiempo límite de 90 minutos y permanencia en pantalla). Entiendo y acepto que cualquier infracción anulará mi prueba en el acto, sin posibilidad de reclamos posteriores alegando desconocimiento.</span>
+                </span>
+              </label>
+            </div>
           </div>
 
           <button type="submit" id="btnStartExam" class="btn btn-primary btn-block btn-lg">
@@ -258,7 +285,7 @@
           </div>
           <div class="anti-cheat-mini-banner">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span><strong>Duración: 1 hora y 30 minutos.</strong> Prohibido salir de la página: Si cambia de pestaña, minimiza, pasa a otra ventana o intenta copiar texto, su prueba será anulada inmediatamente.</span>
+            <span><strong>Duración: 1 hora y 30 minutos.</strong> Prohibido salir de la página o usar clic derecho: Si cambia de pestaña, minimiza, pasa a otra ventana, usa clic derecho o intenta copiar texto, su prueba será anulada inmediatamente.</span>
           </div>
         </div>
 

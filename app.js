@@ -1010,9 +1010,20 @@ async function handleCandidateLogin(e) {
     return;
   }
 
-  if (!DOM.acceptSupervisionCheck.checked) {
-    showToast('Atención', 'Debe aceptar los términos de supervisión para iniciar.', 'warning');
-    DOM.acceptSupervisionCheck.focus();
+  if (!DOM.acceptSupervisionCheck || !DOM.acceptSupervisionCheck.checked) {
+    const box = document.getElementById('securityWarningBox');
+    if (box) {
+      box.classList.remove('shake-attention');
+      void box.offsetWidth;
+      box.classList.add('shake-attention');
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    showToast(
+      'Casilla Obligatoria Requerida',
+      'Debe marcar la casilla confirmando que leyó las normas y prohibiciones (incluyendo la prohibición estricta de clic derecho y cambio de pestaña) para poder comenzar la prueba.',
+      'warning'
+    );
+    if (DOM.acceptSupervisionCheck) DOM.acceptSupervisionCheck.focus();
     return;
   }
 
@@ -1022,7 +1033,9 @@ async function handleCandidateLogin(e) {
     apellidos,
     cedula,
     correo: email,
-    fecha_nacimiento: birthDate
+    fecha_nacimiento: birthDate,
+    terminos_aceptados: true,
+    fecha_aceptacion_terminos: new Date().toISOString()
   };
   AppState.candidateMeta = candidateInfo;
 
@@ -1844,6 +1857,57 @@ function initApp() {
   if (DOM.candidateLoginForm) {
     DOM.candidateLoginForm.addEventListener('submit', handleCandidateLogin);
   }
+
+  // Listener para la casilla que se tacha / se marca (Aceptación de Normas)
+  if (DOM.acceptSupervisionCheck) {
+    DOM.acceptSupervisionCheck.addEventListener('change', (e) => {
+      const box = document.getElementById('securityWarningBox');
+      if (box) {
+        if (e.target.checked) {
+          box.classList.add('is-accepted');
+          box.classList.remove('shake-attention');
+        } else {
+          box.classList.remove('is-accepted');
+        }
+      }
+    });
+  }
+
+  // Bloqueo global de clic derecho en la plataforma (Antifraude)
+  document.addEventListener('contextmenu', (e) => {
+    // Si el examen está en curso, AntiFraudSystem ya lo maneja y anula la prueba de inmediato
+    if (AppState.isExamActive) return;
+    // Si Paola está autenticada y visualizando el panel de administración, permitimos clic normal
+    if (sessionStorage.getItem('LP_ADMIN_AUTH') === 'true' && DOM.viewAdmin && !DOM.viewAdmin.classList.contains('hidden')) {
+      return;
+    }
+    // En las vistas de postulantes (registro, instrucciones o finalizado)
+    e.preventDefault();
+    showToast(
+      'Acción Prohibida',
+      'El uso de clic derecho está estrictamente prohibido en esta plataforma por motivos de seguridad antifraude.',
+      'warning'
+    );
+  });
+
+  // Bloqueo de teclas de inspección de código para postulantes
+  document.addEventListener('keydown', (e) => {
+    if (AppState.isExamActive) return;
+    if (sessionStorage.getItem('LP_ADMIN_AUTH') === 'true' && DOM.viewAdmin && !DOM.viewAdmin.classList.contains('hidden')) {
+      return;
+    }
+
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    const key = (e.key || '').toUpperCase();
+
+    // Atajo secreto de Paola (Ctrl + Shift + A) permitido
+    if (e.ctrlKey && e.shiftKey && key === 'A') return;
+
+    if (e.key === 'F12' || (isCtrlOrCmd && e.shiftKey && (key === 'I' || key === 'J' || key === 'C')) || (isCtrlOrCmd && key === 'U')) {
+      e.preventDefault();
+      showToast('Seguridad', 'Las herramientas de inspección de código están deshabilitadas en esta plataforma.', 'warning');
+    }
+  });
 
   // Formatear cédula en tiempo real para solo permitir dígitos
   if (DOM.candidateCedula) {
