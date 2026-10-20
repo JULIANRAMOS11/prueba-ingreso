@@ -2,6 +2,7 @@
  * ==============================================================================
  * LOZADA & PARTNERS SAS - Área de Recursos Humanos
  * Sistema de Evaluación Técnica para Especialista de Nómina con Antifraude Estricto
+ * Versión: 2.1.0 (Enterprise Secured & Blindada)
  * ==============================================================================
  */
 
