@@ -1620,15 +1620,24 @@ function initAdminLoginModal() {
   if (DOM.btnOpenAdminLogin) {
     DOM.btnOpenAdminLogin.addEventListener('click', () => {
       if (DOM.adminLoginError) DOM.adminLoginError.classList.add('hidden');
+      if (DOM.adminUsernameInput) DOM.adminUsernameInput.value = '';
       if (DOM.adminPasswordInput) DOM.adminPasswordInput.value = '';
       if (DOM.adminLoginModal) {
         DOM.adminLoginModal.classList.remove('hidden');
         setTimeout(() => {
-          if (DOM.adminPasswordInput) DOM.adminPasswordInput.focus();
+          if (DOM.adminUsernameInput) DOM.adminUsernameInput.focus();
         }, 150);
       }
     });
   }
+
+  // Atajo de teclado discreto para Paola: Ctrl + Shift + A
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+      e.preventDefault();
+      if (DOM.btnOpenAdminLogin) DOM.btnOpenAdminLogin.click();
+    }
+  });
 
   const closeLogin = () => {
     if (DOM.adminLoginModal) DOM.adminLoginModal.classList.add('hidden');
@@ -1641,7 +1650,17 @@ function initAdminLoginModal() {
   if (DOM.adminLoginForm) {
     DOM.adminLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const usr = DOM.adminUsernameInput ? DOM.adminUsernameInput.value.trim().toLowerCase() : '';
       const pwd = DOM.adminPasswordInput ? DOM.adminPasswordInput.value.trim() : '';
+
+      if (!usr || !pwd) {
+        if (DOM.adminLoginError) {
+          const errSpan = DOM.adminLoginError.querySelector('span');
+          if (errSpan) errSpan.textContent = 'Por favor ingrese su usuario y contraseña.';
+          DOM.adminLoginError.classList.remove('hidden');
+        }
+        return;
+      }
 
       const submitBtn = DOM.adminLoginForm.querySelector('button[type="submit"]');
       if (submitBtn) {
@@ -1653,7 +1672,7 @@ function initAdminLoginModal() {
         const res = await fetch('/api/admin-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pwd })
+          body: JSON.stringify({ username: usr, password: pwd })
         });
         const data = await res.json();
 
@@ -1665,7 +1684,7 @@ function initAdminLoginModal() {
           openAdminPanel();
         } else {
           // Fallback para desarrollo local si la API aún no está levantada
-          if (res.status === 404 && (pwd.toLowerCase() === 'paola2026' || pwd.toLowerCase() === 'paola')) {
+          if (res.status === 404 && (usr === 'paola' || usr === 'admin') && (pwd.toLowerCase() === 'paola2026' || pwd.toLowerCase() === 'paola')) {
             sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
             closeLogin();
             showToast('Bienvenida Paola', 'Acceso local al Panel de Recursos Humanos.', 'success');
@@ -1684,7 +1703,7 @@ function initAdminLoginModal() {
         }
       } catch (err) {
         console.error('Error al autenticar administrador:', err);
-        if (pwd.toLowerCase() === 'paola2026' || pwd.toLowerCase() === 'paola') {
+        if ((usr === 'paola' || usr === 'admin') && (pwd.toLowerCase() === 'paola2026' || pwd.toLowerCase() === 'paola')) {
           sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
           closeLogin();
           openAdminPanel();

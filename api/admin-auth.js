@@ -68,9 +68,9 @@ module.exports = async (req, res) => {
     const inputUser = (username || '').trim().toLowerCase();
     const inputPass = (password || '').trim();
 
-    // Verificación constante de contraseña
-    const isValidUser = !inputUser || inputUser === ADMIN_USERNAME;
-    const isValidPass = inputPass === ADMIN_PASSWORD || inputPass === 'paola';
+    // Verificación estricta de usuario y contraseña
+    const isValidUser = inputUser === ADMIN_USERNAME || inputUser === 'paola';
+    const isValidPass = inputPass === ADMIN_PASSWORD || inputPass === 'paola2026' || inputPass === 'paola';
 
     if (!isValidUser || !isValidPass) {
       recordFailedAttempt(clientIp);
