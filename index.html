@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prueba Técnica – Especialista de Nómina | LOZADA & PARTNERS SAS</title>
+  <meta name="description" content="Plataforma de evaluación técnica para el cargo de Especialista de Nómina en LOZADA & PARTNERS SAS con sistema de supervisión estricto.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Supabase JS v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- ========================================================================= -->
+  <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
+  <!-- ========================================================================= -->
+  <div id="toastNotification" class="toast-notification hidden" role="alert" aria-live="polite">
+    <div class="toast-icon" id="toastIcon"></div>
+    <div class="toast-content">
+      <h4 id="toastTitle">Aviso</h4>
+      <p id="toastMessage">Mensaje informativo</p>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE CONFIGURACIÓN SUPABASE (UTILITARIO) -->
+  <!-- ========================================================================= -->
+  <div id="configModal" class="modal-overlay hidden">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="header-icon-box blue">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+        </div>
+        <div>
+          <h3>Configuración de Supabase</h3>
+          <p class="text-muted">Ajusta las credenciales de conexión si deseas cambiarlas en vivo.</p>
+        </div>
+        <button type="button" class="btn-close" id="btnCloseConfig">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="cfgSupabaseUrl">Supabase Project URL</label>
+          <input type="text" id="cfgSupabaseUrl" class="form-control" placeholder="https://xyzcompany.supabase.co">
+        </div>
+        <div class="form-group">
+          <label for="cfgSupabaseKey">Supabase Anon Public Key</label>
+          <textarea id="cfgSupabaseKey" class="form-control" rows="3" placeholder="eyJhbGciOiJIUzI1NiIsInR5c..."></textarea>
+        </div>
+        <div class="callout-box info">
+          <p><strong>Nota:</strong> Estas credenciales también se pueden definir permanentemente en el archivo <code>app.js</code> en la constante <code>SUPABASE_CONFIG</code>.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelConfig">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btnSaveConfig">Guardar y Conectar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 1. VISTA CANDIDATO: IDENTIFICACIÓN INICIAL -->
+  <!-- ========================================================================= -->
+  <section id="viewIdentification" class="app-view">
+    <div class="login-wrapper">
+      <div class="brand-header text-center">
+        <div class="brand-logo-badge">
+          <span class="logo-letters">L&P</span>
+        </div>
+        <h1 class="brand-title">LOZADA & PARTNERS SAS</h1>
+        <p class="brand-subtitle">Departamento de Gestión del Talento Humano</p>
+      </div>
+
+      <div class="card login-card shadow-xl">
+        <div class="card-header text-center">
+          <span class="badge-role">Convocatoria Especializada</span>
+          <h2>Prueba Técnica – Especialista de Nómina</h2>
+          <p class="text-muted text-sm mt-2">
+            Evaluación de competencias en liquidación de nómina, PILA, salario integral, retención en la fuente y normativa laboral colombiana.
+          </p>
+        </div>
+
+        <div class="security-warning-box">
+          <div class="warning-icon-wrapper">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="warning-text">
+            <strong>SISTEMA DE SUPERVISIÓN Y SEGURIDAD ANTIFRAUDE ACTIVO</strong>
+            <p>
+              Durante el desarrollo de la prueba no está permitido salir de la pestaña, minimizar la ventana, cambiar de aplicación, copiar, pegar ni abrir las herramientas de desarrollo. Cualquier incidencia anulará la prueba de forma automática e irreversible.
+            </p>
+          </div>
+        </div>
+
+        <form id="candidateLoginForm" class="login-form">
+          <div class="form-group">
+            <label for="candidateFullName">Nombre Completo <span class="required">*</span></label>
+            <div class="input-with-icon">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <input type="text" id="candidateFullName" class="form-control" placeholder="Ej: Camilo Andrés Pérez Gómez" required autocomplete="name">
+            </div>
+            <span class="form-hint">Escribe tus nombres y apellidos completos.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="candidateCedula">Número de Cédula de Ciudadanía <span class="required">*</span></label>
+            <div class="input-with-icon">
+              <span class="input-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>
+              </span>
+              <input type="text" id="candidateCedula" class="form-control" placeholder="Ej: 1020304050 (solo números, sin puntos ni espacios)" required pattern="[0-9]{6,15}" inputmode="numeric">
+            </div>
+            <span class="form-hint">Solo números, sin puntos, comas ni espacios.</span>
+          </div>
+
+          <div class="form-check terms-check">
+            <input type="checkbox" id="acceptSupervisionCheck" required class="checkbox-custom">
+            <label for="acceptSupervisionCheck" class="terms-label">
+              Confirmo que realizaré esta prueba de manera individual, sin asistencias externas ni Inteligencia Artificial, y acepto el protocolo estricto de anulación por cambio de ventana o copiado.
+            </label>
+          </div>
+
+          <button type="submit" id="btnStartExam" class="btn btn-primary btn-block btn-lg">
+            <span>Comenzar Prueba Técnica</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </form>
+
+        <div class="login-footer text-center">
+          <p class="text-xs text-muted">LOZADA & PARTNERS SAS &copy; 2026. Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 2. VISTA CANDIDATO: EXAMEN TÉCNICO EN CURSO (CON ANTIFRAUDE ACTIVO) -->
+  <!-- ========================================================================= -->
+  <section id="viewExam" class="app-view hidden no-select">
+    <!-- Barra Superior Fija de Supervisión y Progreso -->
+    <header class="exam-header shadow-md">
+      <div class="header-container">
+        <div class="header-brand">
+          <div class="mini-logo">L&P</div>
+          <div>
+            <h2 class="exam-header-title">LOZADA & PARTNERS SAS</h2>
+            <span class="exam-badge">Prueba Técnica: Especialista de Nómina</span>
+          </div>
+        </div>
+
+        <div class="candidate-meta">
+          <div class="candidate-pill">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="headerCandidateName">Candidato</span>
+            <span class="id-tag">C.C. <strong id="headerCandidateCedula">---</strong></span>
+          </div>
+        </div>
+
+        <div class="supervision-status">
+          <div class="status-shield-indicator active">
+            <span class="pulsing-shield-dot"></span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span class="status-label">Supervisión Antifraude Activa</span>
+          </div>
+          <span class="save-status-indicator" id="autosaveIndicator">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Autoguardado</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Barra de progreso general -->
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="examProgressBar" style="width: 0%;"></div>
+      </div>
+    </header>
+
+    <!-- Contenedor Principal del Examen -->
+    <main class="exam-content-wrapper">
+      <div class="exam-container">
+        
+        <!-- Instrucciones iniciales del examen -->
+        <div class="exam-intro-card card">
+          <div class="intro-header">
+            <div>
+              <h3>Instrucciones de la Evaluación</h3>
+              <p class="text-sm text-muted">
+                Lea atentamente los contextos y casos prácticos de cada sección. Diligencie todas las respuestas de manera justificada y clara. Dispone de campos de texto para valores numéricos y áreas de texto para argumentación normativa.
+              </p>
+            </div>
+            <div class="questions-counter-badge">
+              <span id="answeredQuestionsCount">0</span> / 38 Respondidas
+            </div>
+          </div>
+          <div class="anti-cheat-mini-banner">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Recordatorio: Si cambia de pestaña, sale de la ventana o intenta copiar texto, su prueba será anulada inmediatamente.</span>
+          </div>
+        </div>
+
+        <!-- Formulario del Cuestionario -->
+        <form id="technicalExamForm" class="exam-questions-form">
+
+          <!-- =============================================================== -->
+          <!-- SECCIÓN 1: LIQUIDACIÓN DE NÓMINA -->
+          <!-- =============================================================== -->
+          <div class="section-card card" id="section1">
+            <div class="section-header">
+              <div class="section-tag">Sección 1 de 7</div>
+              <h3 class="section-title">Liquidación de Nómina</h3>
+            </div>
+            
+            <div class="case-context-box">
+              <div class="context-badge">Contexto del Caso</div>
+              <p class="context-text">
+                Un trabajador tiene la siguiente información laboral y salarial mensual:
+              </p>
+              <div class="context-data-grid">
+                <div class="data-item"><span class="lbl">Salario básico:</span> <span class="val">$3.500.000</span></div>
+                <div class="data-item"><span class="lbl">Comisiones:</span> <span class="val">$800.000</span></div>
+                <div class="data-item"><span class="lbl">Horas extras diurnas:</span> <span class="val">4 horas</span></div>
+                <div class="data-item"><span class="lbl">Horas extras nocturnas:</span> <span class="val">2 horas</span></div>
+                <div class="data-item"><span class="lbl">Auxilio de transporte:</span> <span class="val">$249.095</span></div>
+              </div>
+            </div>
+
+            <div class="questions-list">
+              <!-- 1.1 -->
+              <div class="question-item">
+                <label for="q1_1" class="question-label">
+                  <span class="q-number">1.1</span>
+                  <span class="q-text">Calcule el valor de la hora ordinaria.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q1_1" name="q1_1" class="form-control" placeholder="Indique el valor y fórmula aplicada">
+                </div>
+              </div>
+
+              <!-- 1.2 -->
+              <div class="question-item">
+                <label for="q1_2" class="question-label">
+                  <span class="q-number">1.2</span>
+                  <span class="q-text">Calcule el valor total de horas extras diurnas.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q1_2" name="q1_2" class="form-control" placeholder="Indique valor total y porcentaje de recargo">
+                </div>
+              </div>
+
+              <!-- 1.3 -->
+              <div class="question-item">
+                <label for="q1_3" class="question-label">
+                  <span class="q-number">1.3</span>
+                  <span class="q-text">Calcule el valor total de horas extras nocturnas.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q1_3" name="q1_3" class="form-control" placeholder="Indique valor total y porcentaje de recargo">
+                </div>
+              </div>
+
+              <!-- 1.4 -->
+              <div class="question-item">
+                <label for="q1_4" class="question-label">
+                  <span class="q-number">1.4</span>
+                  <span class="q-text">Determine el total devengado.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q1_4" name="q1_4" class="form-control" placeholder="Indique el valor total devengado">
+                </div>
+              </div>
+
+              <!-- 1.5 -->
+              <div class="question-item">
+                <label for="q1_5" class="question-label">
+                  <span class="q-number">1.5</span>
+                  <span class="q-text">Determine el Ingreso Base de Cotización (IBC).</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q1_5" name="q1_5" class="form-control" placeholder="Indique el IBC para este trabajador y qué conceptos incluye">
+                </div>
+              </div>
+
+              <!-- 1.6 -->
+              <div class="question-item">
+                <label for="q1_6" class="question-label">
+                  <span class="q-number">1.6</span>
+                  <span class="q-text">Calcule los descuentos del trabajador por salud y pensión.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q1_6" name="q1_6" class="form-control" placeholder="Indique descuento Salud (4%), Pensión (4%) y Total">
+                </div>
+              </div>
+
+              <!-- 1.7 -->
+              <div class="question-item">
+                <label for="q1_7" class="question-label">
+                  <span class="q-number">1.7</span>
+                  <span class="q-text">Determine el neto a pagar.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q1_7" name="q1_7" class="form-control" placeholder="Indique el valor neto final a pagar al trabajador">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- =============================================================== -->
+          <!-- SECCIÓN 2: APORTES A SEGURIDAD SOCIAL (PLANILLA PILA) -->
+          <!-- =============================================================== -->
+          <div class="section-card card" id="section2">
+            <div class="section-header">
+              <div class="section-tag">Sección 2 de 7</div>
+              <h3 class="section-title">Aportes a Seguridad Social (Planilla PILA)</h3>
+            </div>
+
+            <div class="case-context-box">
+              <div class="context-badge">Contexto del Caso</div>
+              <p class="context-text">
+                Con base en el trabajador del caso anterior (Sección 1), realice el cálculo de los aportes a seguridad social y parafiscales correspondientes a la liquidación de la planilla PILA mensual.
+              </p>
+            </div>
+
+            <div class="questions-list">
+              <!-- 2.1 -->
+              <div class="question-item">
+                <label for="q2_1" class="question-label">
+                  <span class="q-number">2.1</span>
+                  <span class="q-text">Determine el IBC para seguridad social.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q2_1" name="q2_1" class="form-control" placeholder="Monto del IBC para cálculo de seguridad social">
+                </div>
+              </div>
+
+              <!-- 2.2 -->
+              <div class="question-item">
+                <label for="q2_2" class="question-label">
+                  <span class="q-number">2.2</span>
+                  <span class="q-text">Calcule los aportes del empleador y del trabajador para Salud.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q2_2" name="q2_2" class="form-control" rows="2" placeholder="Detalle: aporte empleador (% y $), aporte trabajador (% y $) y si aplica exoneración Art. 114-1 E.T."></textarea>
+                </div>
+              </div>
+
+              <!-- 2.3 -->
+              <div class="question-item">
+                <label for="q2_3" class="question-label">
+                  <span class="q-number">2.3</span>
+                  <span class="q-text">Calcule los aportes del empleador y del trabajador para Pensión.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q2_3" name="q2_3" class="form-control" rows="2" placeholder="Detalle: aporte empleador (12%), aporte trabajador (4%) y total"></textarea>
+                </div>
+              </div>
+
+              <!-- 2.4 -->
+              <div class="question-item">
+                <label for="q2_4" class="question-label">
+                  <span class="q-number">2.4</span>
+                  <span class="q-text">Calcule los aportes para ARL (suponga riesgo clase I – 0.522%).</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q2_4" name="q2_4" class="form-control" placeholder="Valor liquidado de ARL a cargo del empleador">
+                </div>
+              </div>
+
+              <!-- 2.5 -->
+              <div class="question-item">
+                <label for="q2_5" class="question-label">
+                  <span class="q-number">2.5</span>
+                  <span class="q-text">Calcule los aportes para Caja de compensación, SENA e ICBF.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q2_5" name="q2_5" class="form-control" rows="3" placeholder="Detalle: CCF (4%), SENA (2%), ICBF (3%) e indique si aplica exoneración tributaria"></textarea>
+                </div>
+              </div>
+
+              <!-- 2.6 -->
+              <div class="question-item">
+                <label for="q2_6" class="question-label">
+                  <span class="q-number">2.6</span>
+                  <span class="q-text">Determine el valor total a pagar en la planilla PILA.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q2_6" name="q2_6" class="form-control" placeholder="Gran total a pagar en la planilla PILA (Salud + Pensión + ARL + Parafiscales)">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- =============================================================== -->
+          <!-- SECCIÓN 3: SALARIO INTEGRAL Y TOPES -->
+          <!-- =============================================================== -->
+          <div class="section-card card" id="section3">
+            <div class="section-header">
+              <div class="section-tag">Sección 3 de 7</div>
+              <h3 class="section-title">Salario Integral y Topes</h3>
+            </div>
+
+            <!-- PARTE A -->
+            <div class="case-context-box">
+              <div class="context-badge">Contexto Parte A</div>
+              <p class="context-text">
+                Un Director de Operaciones tiene pactado un salario integral de <strong>$25.000.000</strong> mensuales.
+              </p>
+            </div>
+
+            <div class="questions-list">
+              <!-- 3.1 -->
+              <div class="question-item">
+                <label for="q3_1" class="question-label">
+                  <span class="q-number">3.1</span>
+                  <span class="q-text">Determine cuál es el factor prestacional del salario integral.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q3_1" name="q3_1" class="form-control" placeholder="Porcentaje legal y valor monetario del factor prestacional">
+                </div>
+              </div>
+
+              <!-- 3.2 -->
+              <div class="question-item">
+                <label for="q3_2" class="question-label">
+                  <span class="q-number">3.2</span>
+                  <span class="q-text">Determine el Ingreso Base de Cotización (IBC).</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q3_2" name="q3_2" class="form-control" placeholder="IBC para cotización de seguridad social (porcentaje y valor)">
+                </div>
+              </div>
+
+              <!-- 3.3 -->
+              <div class="question-item">
+                <label for="q3_3" class="question-label">
+                  <span class="q-number">3.3</span>
+                  <span class="q-text">Calcule los aportes del trabajador a salud y pensión.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q3_3" name="q3_3" class="form-control" placeholder="Descuentos del trabajador para salud (4%) y pensión (4% + FSP si aplica)">
+                </div>
+              </div>
+
+              <!-- 3.4 -->
+              <div class="question-item">
+                <label for="q3_4" class="question-label">
+                  <span class="q-number">3.4</span>
+                  <span class="q-text">Determine si este trabajador tiene derecho a Prima, Cesantías y Recargos nocturnos (justifique cada uno).</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q3_4" name="q3_4" class="form-control" rows="3" placeholder="Justifique legalmente cada concepto: Prima de servicios, Cesantías e intereses, y Recargos nocturnos/horas extras."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- PARTE B -->
+            <div class="case-context-box mt-6">
+              <div class="context-badge">Contexto Parte B</div>
+              <p class="context-text">
+                Un alto ejecutivo tiene ingresos salariales mensuales devengados por valor de <strong>$42.000.000</strong>.
+              </p>
+            </div>
+
+            <div class="questions-list">
+              <!-- 3.5 -->
+              <div class="question-item">
+                <label for="q3_5" class="question-label">
+                  <span class="q-number">3.5</span>
+                  <span class="q-text">Indique cuál es el tope máximo de cotización a seguridad social en Colombia.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q3_5" name="q3_5" class="form-control" placeholder="Indique tope en número de SMMLV">
+                </div>
+              </div>
+
+              <!-- 3.6 -->
+              <div class="question-item">
+                <label for="q3_6" class="question-label">
+                  <span class="q-number">3.6</span>
+                  <span class="q-text">Determine cuál debe ser el IBC real para aportes considerando el tope legal.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q3_6" name="q3_6" class="form-control" placeholder="Valor del IBC aplicable a la cotización respetando el tope">
+                </div>
+              </div>
+
+              <!-- 3.7 -->
+              <div class="question-item">
+                <label for="q3_7" class="question-label">
+                  <span class="q-number">3.7</span>
+                  <span class="q-text">Calcule los aportes del trabajador a salud y pensión considerando el tope.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q3_7" name="q3_7" class="form-control" placeholder="Aportes de salud, pensión y Fondo de Solidaridad Pensional sobre el tope">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- =============================================================== -->
+          <!-- SECCIÓN 4: PAGOS SALARIALES Y NO SALARIALES -->
+          <!-- =============================================================== -->
+          <div class="section-card card" id="section4">
+            <div class="section-header">
+              <div class="section-tag">Sección 4 de 7</div>
+              <h3 class="section-title">Pagos Salariales y No Salariales</h3>
+            </div>
+
+            <div class="case-context-box">
+              <div class="context-badge">Contexto del Caso</div>
+              <p class="context-text">
+                Un trabajador recibe en el mes los siguientes pagos:
+              </p>
+              <div class="context-data-grid">
+                <div class="data-item"><span class="lbl">Salario básico:</span> <span class="val">$4.200.000</span></div>
+                <div class="data-item"><span class="lbl">Bonificación por cumplimiento:</span> <span class="val">$900.000</span></div>
+                <div class="data-item"><span class="lbl">Auxilio de rodamiento:</span> <span class="val">$600.000</span></div>
+                <div class="data-item"><span class="lbl">Comisión comercial:</span> <span class="val">$700.000</span></div>
+                <div class="data-item"><span class="lbl">Bono de bienestar no salarial:</span> <span class="val">$500.000</span></div>
+              </div>
+            </div>
+
+            <div class="questions-list">
+              <!-- 4.1 -->
+              <div class="question-item">
+                <label for="q4_1" class="question-label">
+                  <span class="q-number">4.1</span>
+                  <span class="q-text">Identifique cuáles pagos constituyen salario.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q4_1" name="q4_1" class="form-control" rows="2" placeholder="Liste cada concepto que constituye salario y el total"></textarea>
+                </div>
+              </div>
+
+              <!-- 4.2 -->
+              <div class="question-item">
+                <label for="q4_2" class="question-label">
+                  <span class="q-number">4.2</span>
+                  <span class="q-text">Identifique cuáles pagos no constituyen salario.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q4_2" name="q4_2" class="form-control" rows="2" placeholder="Liste los conceptos no salariales y su justificación"></textarea>
+                </div>
+              </div>
+
+              <!-- 4.3 -->
+              <div class="question-item">
+                <label for="q4_3" class="question-label">
+                  <span class="q-number">4.3</span>
+                  <span class="q-text">Determine el IBC para seguridad social.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q4_3" name="q4_3" class="form-control" placeholder="Calcule el IBC verificando el límite del 40% (Ley 1393 de 2010)">
+                </div>
+              </div>
+
+              <!-- 4.4 -->
+              <div class="question-item">
+                <label for="q4_4" class="question-label">
+                  <span class="q-number">4.4</span>
+                  <span class="q-text">Explique qué condiciones deben cumplirse para que un pago no constituya salario según la ley laboral.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q4_4" name="q4_4" class="form-control" rows="3" placeholder="Fundamento legal (CST Art. 128), acuerdo expreso, habitualidad y destinación específica."></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- =============================================================== -->
+          <!-- SECCIÓN 5: RETENCIÓN EN LA FUENTE -->
+          <!-- =============================================================== -->
+          <div class="section-card card" id="section5">
+            <div class="section-header">
+              <div class="section-tag">Sección 5 de 7</div>
+              <h3 class="section-title">Retención en la Fuente</h3>
+            </div>
+
+            <div class="case-context-box">
+              <div class="context-badge">Contexto del Caso</div>
+              <p class="context-text">
+                Un trabajador tiene ingresos mensuales brutos por: <strong>Salario: $9.500.000</strong> | Descuentos obligatorios de Salud y Pensión | <strong>Aporte voluntario a cuenta AFC: $700.000</strong>.
+              </p>
+            </div>
+
+            <div class="questions-list">
+              <!-- 5.1 -->
+              <div class="question-item">
+                <label for="q5_1" class="question-label">
+                  <span class="q-number">5.1</span>
+                  <span class="q-text">Explique qué es la retención en la fuente por salarios.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q5_1" name="q5_1" class="form-control" rows="2" placeholder="Definición tributaria, mecanismo de recaudo anticipado y periodicidad."></textarea>
+                </div>
+              </div>
+
+              <!-- 5.2 -->
+              <div class="question-item">
+                <label for="q5_2" class="question-label">
+                  <span class="q-number">5.2</span>
+                  <span class="q-text">Indique qué conceptos se pueden restar de la base de retención.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q5_2" name="q5_2" class="form-control" rows="3" placeholder="Ingresos no constitutivos de renta, deducciones imputables y rentas exentas (25%)."></textarea>
+                </div>
+              </div>
+
+              <!-- 5.3 -->
+              <div class="question-item">
+                <label for="q5_3" class="question-label">
+                  <span class="q-number">5.3</span>
+                  <span class="q-text">Mencione dos beneficios tributarios que pueden disminuir la retención.</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q5_3" name="q5_3" class="form-control" rows="2" placeholder="Ej: intereses de vivienda, dependientes económicos, prepagada, etc."></textarea>
+                </div>
+              </div>
+
+              <!-- 5.4 -->
+              <div class="question-item">
+                <label for="q5_4" class="question-label">
+                  <span class="q-number">5.4</span>
+                  <span class="q-text">Indique cuál es el límite máximo de deducciones permitidas.</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q5_4" name="q5_4" class="form-control" placeholder="Indique el porcentaje límite y tope en UVT anuales o mensuales (Art. 388 E.T.)">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- =============================================================== -->
+          <!-- SECCIÓN 6: CUMPLIMIENTO UGPP -->
+          <!-- =============================================================== -->
+          <div class="section-card card" id="section6">
+            <div class="section-header">
+              <div class="section-tag">Sección 6 de 7</div>
+              <h3 class="section-title">Cumplimiento UGPP</h3>
+            </div>
+
+            <div class="case-context-box">
+              <div class="context-badge">Contexto del Caso</div>
+              <p class="context-text">
+                Una empresa tiene la siguiente estructura salarial pactada con un colaborador: <strong>Salario: $4.000.000</strong> | <strong>Bono no salarial: $2.800.000</strong>. La empresa realiza aportes a seguridad social únicamente sobre <strong>$4.000.000</strong>.
+              </p>
+            </div>
+
+            <div class="questions-list">
+              <!-- 6.1 -->
+              <div class="question-item">
+                <label for="q6_1" class="question-label">
+                  <span class="q-number">6.1</span>
+                  <span class="q-text">¿Qué posible riesgo podría identificar la UGPP en esta estructura?</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q6_1" name="q6_1" class="form-control" rows="3" placeholder="Analice la regla de desalarización del 40% (Ley 1393 de 2010 Art. 30) y evasión de aportes."></textarea>
+                </div>
+              </div>
+
+              <!-- 6.2 -->
+              <div class="question-item">
+                <label for="q6_2" class="question-label">
+                  <span class="q-number">6.2</span>
+                  <span class="q-text">¿Qué criterio utiliza la UGPP para determinar si un pago es realmente no salarial?</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q6_2" name="q6_2" class="form-control" rows="3" placeholder="Criterios: enriquecimiento patrimonial, retribución directa del servicio, periodicidad y soporte documental."></textarea>
+                </div>
+              </div>
+
+              <!-- 6.3 -->
+              <div class="question-item">
+                <label for="q6_3" class="question-label">
+                  <span class="q-number">6.3</span>
+                  <span class="q-text">¿Qué consecuencias podría tener una fiscalización de la UGPP?</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q6_3" name="q6_3" class="form-control" rows="3" placeholder="Sanciones por inexactitud, cobro de aportes retroactivos, intereses moratorios y sanciones a la empresa."></textarea>
+                </div>
+              </div>
+
+              <!-- 6.4 -->
+              <div class="question-item">
+                <label for="q6_4" class="question-label">
+                  <span class="q-number">6.4</span>
+                  <span class="q-text">¿Qué recomendaciones haría para evitar sanciones?</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q6_4" name="q6_4" class="form-control" rows="3" placeholder="Buenas prácticas en políticas de compensación, acuerdos de desalarización y verificación PILA."></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- =============================================================== -->
+          <!-- SECCIÓN 7: LEGISLACIÓN LABORAL (RESPUESTA BREVE) -->
+          <!-- =============================================================== -->
+          <div class="section-card card" id="section7">
+            <div class="section-header">
+              <div class="section-tag">Sección 7 de 7</div>
+              <h3 class="section-title">Legislación Laboral (Respuesta Breve)</h3>
+            </div>
+
+            <div class="questions-list">
+              <!-- 7.1 -->
+              <div class="question-item">
+                <label for="q7_1" class="question-label">
+                  <span class="q-number">7.1</span>
+                  <span class="q-text">¿Qué es el Ingreso Base de Cotización (IBC)?</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q7_1" name="q7_1" class="form-control" rows="2" placeholder="Definición concreta del IBC según la normativa colombiana"></textarea>
+                </div>
+              </div>
+
+              <!-- 7.2 -->
+              <div class="question-item">
+                <label for="q7_2" class="question-label">
+                  <span class="q-number">7.2</span>
+                  <span class="q-text">¿Cuál es el porcentaje de aporte del trabajador a salud y pensión?</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q7_2" name="q7_2" class="form-control" placeholder="Indique porcentajes exactos de descuento al trabajador">
+                </div>
+              </div>
+
+              <!-- 7.3 -->
+              <div class="question-item">
+                <label for="q7_3" class="question-label">
+                  <span class="q-number">7.3</span>
+                  <span class="q-text">¿Cuál es el porcentaje del recargo nocturno?</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q7_3" name="q7_3" class="form-control" placeholder="Porcentaje legal sobre la hora ordinaria">
+                </div>
+              </div>
+
+              <!-- 7.4 -->
+              <div class="question-item">
+                <label for="q7_4" class="question-label">
+                  <span class="q-number">7.4</span>
+                  <span class="q-text">¿Cuál es el porcentaje del recargo dominical o festivo?</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q7_4" name="q7_4" class="form-control" placeholder="Porcentaje legal por trabajo en domingo o festivo">
+                </div>
+              </div>
+
+              <!-- 7.5 -->
+              <div class="question-item">
+                <label for="q7_5" class="question-label">
+                  <span class="q-number">7.5</span>
+                  <span class="q-text">¿Quién paga las incapacidades del día 3 al 180?</span>
+                </label>
+                <div class="input-wrapper">
+                  <input type="text" id="q7_5" name="q7_5" class="form-control" placeholder="Entidad responsable y porcentaje legal">
+                </div>
+              </div>
+
+              <!-- 7.6 -->
+              <div class="question-item">
+                <label for="q7_6" class="question-label">
+                  <span class="q-number">7.6</span>
+                  <span class="q-text">¿Quién tiene derecho al auxilio de transporte?</span>
+                </label>
+                <div class="input-wrapper">
+                  <textarea id="q7_6" name="q7_6" class="form-control" rows="2" placeholder="Requisitos legales de ingresos (en SMMLV) y condiciones de distancia/modalidad"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Botón de Envío Final -->
+          <div class="exam-submit-card card text-center">
+            <h3>¿Ha completado todas las secciones?</h3>
+            <p class="text-sm text-muted">
+              Una vez enviada la prueba, sus respuestas serán consolidadas en el sistema de Recursos Humanos y el estado pasará a <strong>FINALIZADO</strong>. No se permitirán ediciones posteriores.
+            </p>
+            <div class="submit-action-wrapper mt-4">
+              <button type="button" id="btnSubmitExam" class="btn btn-success btn-lg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>Finalizar y Enviar Prueba Técnica</span>
+              </button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </main>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 3. PANTALLA ROJA DE ALERTA: PRUEBA INVALIDADA / CUENTA BLOQUEADA -->
+  <!-- ========================================================================= -->
+  <section id="viewBlocked" class="app-view hidden blocked-screen">
+    <div class="blocked-card-container">
+      <div class="blocked-icon-pulse">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+
+      <div class="blocked-badge">VIOLACIÓN DE PROTOCOLO ANTIFRAUDE</div>
+      <h1 class="blocked-title">PRUEBA INVALIDADA Y CUENTA BLOQUEADA</h1>
+      <p class="blocked-subtitle">
+        El sistema de seguridad de <strong>LOZADA & PARTNERS SAS</strong> ha detectado una acción no permitida durante la realización de su prueba técnica.
+      </p>
+
+      <div class="incident-details-box">
+        <div class="incident-header">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <strong>Detalle de la Incidencia Registrada</strong>
+        </div>
+        <div class="incident-meta-grid">
+          <div><span class="meta-label">Candidato:</span> <strong id="blockedCandidateName">---</strong></div>
+          <div><span class="meta-label">Cédula:</span> <strong id="blockedCandidateCedula">---</strong></div>
+          <div><span class="meta-label">Fecha y Hora:</span> <span id="blockedTimestamp">---</span></div>
+          <div class="full-width"><span class="meta-label">Causa del Bloqueo:</span> <strong id="blockedReasonText" class="text-danger-strong">---</strong></div>
+        </div>
+      </div>
+
+      <div class="blocked-explanation">
+        <p>
+          Su examen ha sido <strong>interrumpido de manera irreversible</strong> y el incidente fue reportado en tiempo real a la Coordinación de Recursos Humanos (Paola).
+        </p>
+        <p class="mt-2 text-xs text-muted-contrast">
+          Cualquier recarga o intento de reinicio manual queda inhabilitado. Si considera que se trató de un error técnico involuntario, comuníquese con el Área de Selección de LOZADA & PARTNERS SAS.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 4. PANTALLA ÉXITO: PRUEBA FINALIZADA SATISFACTORIAMENTE -->
+  <!-- ========================================================================= -->
+  <section id="viewFinished" class="app-view hidden finished-screen">
+    <div class="finished-card-container">
+      <div class="finished-icon-wrapper">
+        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <span class="success-badge">Evaluación Completada</span>
+      <h1 class="finished-title">¡Prueba Técnica Finalizada con Éxito!</h1>
+      <p class="finished-subtitle">
+        Muchas gracias por su participación. Sus respuestas han sido guardadas y remitidas formalmente al Área de Recursos Humanos de <strong>LOZADA & PARTNERS SAS</strong>.
+      </p>
+
+      <div class="finished-receipt-card">
+        <div class="receipt-row">
+          <span>Candidato:</span>
+          <strong id="finishedCandidateName">---</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Cédula de Ciudadanía:</span>
+          <strong id="finishedCandidateCedula">---</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Fecha de Registro:</span>
+          <span id="finishedDate">---</span>
+        </div>
+        <div class="receipt-row">
+          <span>Estado en Plataforma:</span>
+          <span class="badge badge-success">FINALIZADO</span>
+        </div>
+      </div>
+
+      <p class="text-sm text-muted mt-4">
+        El equipo de Selección de Personal revisará sus respuestas y se pondrá en contacto con usted a través del correo electrónico registrado en su postulación.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 5. VISTA ADMINISTRADOR: PANEL DE CONTROL RRHH (?admin=paola2026) -->
+  <!-- ========================================================================= -->
+  <section id="viewAdmin" class="app-view hidden admin-view">
+    <!-- Header Admin -->
+    <header class="admin-top-bar">
+      <div class="admin-header-content">
+        <div class="brand-group">
+          <div class="admin-brand-icon">L&P</div>
+          <div>
+            <h1 class="admin-title">LOZADA & PARTNERS SAS</h1>
+            <p class="admin-subtitle">Panel de Control de Recursos Humanos – Gestión de Pruebas Técnicas</p>
+          </div>
+        </div>
+
+        <div class="admin-user-badge">
+          <div class="user-avatar">P</div>
+          <div class="user-info">
+            <span class="user-name">Paola</span>
+            <span class="user-role">Coordinadora de Selección / RRHH</span>
+          </div>
+          <button type="button" class="btn-icon" id="btnOpenConfigModal" title="Configuración de Conexión Supabase">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="admin-main-container">
+      
+      <!-- Métricas / Estadísticas Rápidas -->
+      <div class="stats-overview-grid">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper navy">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Total Candidatos</span>
+            <span class="stat-value" id="statTotalCandidates">0</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrapper emerald">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Pruebas Finalizadas</span>
+            <span class="stat-value" id="statFinalizedCandidates">0</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrapper blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">En Curso / Activas</span>
+            <span class="stat-value" id="statInProgressCandidates">0</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon-wrapper red">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Bloqueadas (Antifraude)</span>
+            <span class="stat-value" id="statBlockedCandidates">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros y Herramientas -->
+      <div class="admin-toolbar card">
+        <div class="toolbar-search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="adminSearchInput" class="toolbar-search-input" placeholder="Buscar por nombre o cédula...">
+        </div>
+
+        <div class="toolbar-filters">
+          <label class="filter-label">Estado:</label>
+          <div class="filter-pill-group">
+            <button type="button" class="filter-pill active" data-filter="ALL">Todos</button>
+            <button type="button" class="filter-pill" data-filter="FINALIZADO">Finalizados</button>
+            <button type="button" class="filter-pill" data-filter="EN_CURSO">En Curso</button>
+            <button type="button" class="filter-pill" data-filter="BLOQUEADO">Bloqueados</button>
+          </div>
+        </div>
+
+        <div class="toolbar-actions">
+          <button type="button" id="btnRefreshAdminTable" class="btn btn-secondary btn-icon-text">
+            <svg class="spin-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Actualizar en Tiempo Real</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Candidatos -->
+      <div class="admin-table-card card">
+        <div class="table-responsive">
+          <table class="admin-data-table" id="adminTable">
+            <thead>
+              <tr>
+                <th>Fecha y Hora</th>
+                <th>Nombre del Candidato</th>
+                <th>Cédula</th>
+                <th>Estado</th>
+                <th>Motivo de Bloqueo / Incidencia</th>
+                <th class="text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody">
+              <tr>
+                <td colspan="6" class="text-center py-8 text-muted">Cargando registros de evaluación...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 6. MODAL ADMINISTRADOR: VER RESPUESTAS COMPLETAS DEL CANDIDATO -->
+  <!-- ========================================================================= -->
+  <div id="responsesModal" class="modal-overlay hidden">
+    <div class="modal-container modal-lg">
+      <div class="modal-header">
+        <div>
+          <span class="badge-role">Revisión Técnica de Respuestas</span>
+          <h2 id="modalCandidateNameTitle">Respuestas de Candidato</h2>
+          <p class="text-muted text-sm" id="modalCandidateMetaInfo">C.C. 000000 | Presentado el: ---</p>
+        </div>
+        <button type="button" class="btn-close" id="btnCloseResponsesModal">&times;</button>
+      </div>
+
+      <div class="modal-body modal-scrollable" id="modalResponsesContent">
+        <!-- Renderizado dinámico de las 7 secciones con respuestas -->
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnExportResponses">Imprimir / Guardar PDF</button>
+        <button type="button" class="btn btn-primary" id="btnDoneViewingResponses">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 7. MODAL DE CONFIRMACIÓN PARA REINICIAR / DESBLOQUEAR -->
+  <!-- ========================================================================= -->
+  <div id="confirmResetModal" class="modal-overlay hidden">
+    <div class="modal-container modal-sm">
+      <div class="modal-header">
+        <div class="header-icon-box amber">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div>
+          <h3>¿Desbloquear / Reiniciar Candidato?</h3>
+          <p class="text-muted text-xs">Esta acción permitirá al candidato volver a presentar la prueba técnica desde cero.</p>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p>¿Deseas resetear o eliminar el registro del candidato <strong id="resetTargetName">---</strong> (C.C. <strong id="resetTargetCedula">---</strong>)?</p>
+        <p class="text-xs text-muted mt-2">Se eliminarán las respuestas anteriores y su estado actual para que pueda iniciar sesión nuevamente.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="btnCancelReset">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmReset">Sí, Desbloquear y Reiniciar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script principal de la aplicación -->
+  <script src="app.js"></script>
+</body>
+</html>
