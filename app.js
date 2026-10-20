@@ -143,6 +143,61 @@ const EXAM_QUESTIONS_MAP = {
 
 const TOTAL_QUESTIONS_COUNT = Object.keys(EXAM_QUESTIONS_MAP).length; // 38 preguntas
 
+// Solucionario Técnico Oficial para Calificación de Paola (LOZADA & PARTNERS)
+const EXAM_ANSWER_KEY = {
+  // Sección 1: Salario $1.800.000, Aux Transporte $162.000, 10 HED, 5 HEN
+  q1_1: 'Valor hora ordinaria (Base 230h o 240h según jornada): Con 240h = $1.800.000 / 240 = $7.500 | Con 230h (Ley 2101) = $1.800.000 / 230 = $7.826,09.',
+  q1_2: '10 Horas Extras Diurnas (+25%): Con base 240h: $7.500 × 1.25 × 10 = $93.750 | Con base 230h: $7.826,09 × 1.25 × 10 = $97.826.',
+  q1_3: '5 Horas Extras Nocturnas (+75%): Con base 240h: $7.500 × 1.75 × 5 = $65.625 | Con base 230h: $7.826,09 × 1.75 × 5 = $68.478.',
+  q1_4: 'Total Devengado (Salario + Aux. Transporte + HED + HEN): Base 240h = $1.800.000 + $162.000 + $93.750 + $65.625 = $2.121.375 (Base 230h = $2.128.304).',
+  q1_5: 'IBC Seguridad Social (Total devengado menos Auxilio de Transporte): Base 240h = $1.959.375 | Base 230h = $1.966.304.',
+  q1_6: 'Deducciones Trabajador (4% Salud + 4% Pensión sobre el IBC): Base 240h: Salud $78.375 + Pensión $78.375 = $156.750 (Base 230h = $157.304).',
+  q1_7: 'Neto a Pagar (Total Devengado - Deducciones): Base 240h: $2.121.375 - $156.750 = $1.964.625 (Base 230h = $1.971.000).',
+
+  // Sección 2: Planilla PILA sobre el trabajador anterior
+  q2_1: 'IBC Seguridad Social: $1.959.375 (o $1.966.304 según divisor de horas utilizado en Sección 1). El auxilio de transporte NO hace parte del IBC.',
+  q2_2: 'Salud: Trabajador 4% ($78.375). Empleador 0% (Exonerado del 8.5% por Art. 114-1 E.T. al devengar menos de 10 SMMLV).',
+  q2_3: 'Pensión (16% total): Trabajador 4% ($78.375) + Empleador 12% ($235.125) = Total Pensión $313.500.',
+  q2_4: 'ARL Riesgo I (0.522% a cargo 100% del empleador): $1.959.375 × 0.522% = $10.228 (redondeado a $10.200 o $10.300 en PILA).',
+  q2_5: 'Parafiscales: Caja de Compensación 4% ($78.375). Exonerado de SENA (2%) e ICBF (3%) por Art. 114-1 E.T. (< 10 SMMLV).',
+  q2_6: 'Total Planilla PILA (Salud 4% + Pensión 16% + ARL 0.522% + CCF 4% = 24.522% del IBC): Aprox. $480.478.',
+
+  // Sección 3: Salario Integral ($18.000.000) y Topes ($40.000.000)
+  q3_1: 'Factor Prestacional (30%): $18.000.000 × 30% = $5.400.000 (Factor salarial 70% = $12.600.000).',
+  q3_2: 'IBC Salario Integral (70% del total): $18.000.000 × 70% = $12.600.000.',
+  q3_3: 'Aportes sobre IBC ($12.600.000): Salud (12.5%: Emp 8.5% $1.071.000 + Trab 4% $504.000, NO aplica exoneración >10 SMMLV), Pensión (16%: Emp 12% $1.512.000 + Trab 4% $504.000), FSP (1.2% o 1.4% según rango SMMLV), ARL (0.522%: $65.772), Parafiscales 9% sobre el 70% ($1.134.000).',
+  q3_4: 'Prima y Cesantías NO se pagan por separado (ya están incluidas en el 30% prestacional). Vacaciones SÍ se pagan. Recargos/horas extras dependen del cargo (si no es de dirección, confianza o manejo).',
+  q3_5: 'El tope máximo de cotización al Sistema de Seguridad Social en Colombia es de 25 SMMLV (Ley 100 de 1993 / Ley 797 de 2003).',
+  q3_6: 'El IBC aplicable está limitado al tope de 25 SMMLV vigentes (ej. si SMMLV = $1.300.000 -> $32.500.000; si SMMLV = $1.423.500 -> $35.587.500), ya que el 70% de $40M ($28M) o un salario ordinario de $40M se evalúa frente al tope de 25 SMMLV.',
+  q3_7: 'Cálculo de Salud (12.5%), Pensión (16% + FSP 2%), ARL y Parafiscales liquidados sobre el IBC topado en 25 SMMLV.',
+
+  // Sección 4: Pagos Salariales ($3.000.000) y No Salariales ($3.200.000)
+  q4_1: 'Pagos salariales: Salario básico = $3.000.000.',
+  q4_2: 'Pagos no salariales: Bonificación no salarial ($2.000.000) + Auxilio de rodamiento ($800.000) + Auxilio de alimentación ($400.000) = $3.200.000.',
+  q4_3: 'Ley 1393 de 2010 (Tope 40%): Total remuneración = $6.200.000. El 40% de $6.200.000 es $2.480.000. Exceso no salarial = $3.200.000 - $2.480.000 = $720.000. IBC = $3.000.000 + $720.000 = $3.720.000.',
+  q4_4: 'Condiciones (Art. 128 CST): Que no retribuya directamente el servicio individual, que sea ocasional o por mera liberalidad, o que exista pacto expreso de desalarización (sin desnaturalizar pagos que por ley son salario).',
+
+  // Sección 5: Retención en la Fuente
+  q5_1: 'Es el recaudo anticipado del impuesto sobre la renta que el empleador (agente retenedor) descuenta mensualmente de los pagos laborales gravables que superan la base mínima en UVT (Art. 383 E.T.).',
+  q5_2: 'Ingresos no constitutivos de renta ni ganancia ocasional (Aportes obligatorios a Salud 4%, Pensión 4% y Fondo de Solidaridad Pensional).',
+  q5_3: 'Deducciones y rentas exentas: Intereses de vivienda (hasta 100 UVT/mes), Medicina prepagada/seguros de salud (hasta 16 UVT/mes), Dependientes económicos (10% hasta 32 UVT/mes + 72 UVT anuales), Aportes voluntarios AFC / FPV y el 25% de renta exenta laboral.',
+  q5_4: 'Límite del 40% de los ingresos netos (Ingresos brutos menos INCRNGO), sin exceder 1.340 UVT anuales (Ley 2277 de 2022).',
+
+  // Sección 6: Cumplimiento UGPP (Salario $2.000.000 vs Bonificaciones $4.000.000)
+  q6_1: 'Riesgo alto de evasión/elusión de aportes por desalarización artificial (los pagos no salariales representan el 66.7% del ingreso total) y omisión de la regla del 40% (Ley 1393 de 2010).',
+  q6_2: 'Primacía de la realidad sobre las formas (Art. 53 C.P. y Art. 127/128 CST): habitualidad, periodicidad, causalidad directa con el desempeño o cumplimiento de metas individuales, y aplicación del tope del 40%.',
+  q6_3: 'Liquidación oficial por inexactitud/omisión, reliquidación retroactiva de aportes (hasta 5 años), intereses moratorios diarios a tasa máxima de usura y sanciones de hasta el 35%, 60% o 100%+ de los aportes dejados de pagar.',
+  q6_4: 'Aplicar estrictamente el límite del 40% (Ley 1393) en nómina, documentar en otrosíes los pactos del Art. 128 CST, soportar que las bonificaciones no retribuyen el servicio directo y realizar auditorías preventivas de PILA vs Contabilidad.',
+
+  // Sección 7: Legislación Laboral
+  q7_1: 'Es el monto de los ingresos salariales mensuales del trabajador (más el exceso del 40% de pagos no salariales) sobre el cual se calculan los porcentajes de cotización a Salud, Pensión y ARL.',
+  q7_2: '4% para Salud y 4% para Pensión (Total 8% a cargo del trabajador; más 1% a 2% adicional de FSP si el IBC es igual o superior a 4 SMMLV).',
+  q7_3: '35% sobre el valor de la hora ordinaria (Art. 168 CST, horario nocturno de 9:00 p.m. a 6:00 a.m.).',
+  q7_4: '75% sobre el valor de la hora ordinaria en proporción a las horas laboradas (Art. 179 CST; en transición gradual bajo reforma laboral si aplica).',
+  q7_5: 'La EPS (Entidad Promotora de Salud) reconoce el pago a partir del día 3 hasta el día 180 en enfermedades de origen común (los primeros 2 días los asume el empleador; si es origen laboral, la ARL paga el 100% desde el día seguinte).',
+  q7_6: 'Trabajadores que devenguen hasta dos (2) Salarios Mínimos Mensuales Legales Vigentes (2 SMMLV) y que requieran desplazarse a su lugar de trabajo.'
+};
+
 // ==============================================================================
 // 3. ESTADO DE LA APLICACIÓN
 // ==============================================================================
@@ -154,7 +209,9 @@ const AppState = {
   autosaveTimer: null,
   adminData: [],
   adminFilter: 'ALL',
-  adminSearchQuery: ''
+  adminSearchQuery: '',
+  currentGradingCedula: null,
+  showAnswerKeyInModal: true
 };
 
 // ==============================================================================
@@ -215,8 +272,15 @@ const DOM = {
   btnCloseResponsesModal: document.getElementById('btnCloseResponsesModal'),
   btnDoneViewingResponses: document.getElementById('btnDoneViewingResponses'),
   btnExportResponses: document.getElementById('btnExportResponses'),
+  liveGradingScore: document.getElementById('liveGradingScore'),
+  btnToggleAnswerKey: document.getElementById('btnToggleAnswerKey'),
+  labelToggleAnswerKey: document.getElementById('labelToggleAnswerKey'),
+  btnSaveGrading: document.getElementById('btnSaveGrading'),
 
   confirmResetModal: document.getElementById('confirmResetModal'),
+  confirmModalTitle: document.getElementById('confirmModalTitle'),
+  confirmModalSubtitle: document.getElementById('confirmModalSubtitle'),
+  confirmModalIconBox: document.getElementById('confirmModalIconBox'),
   resetTargetName: document.getElementById('resetTargetName'),
   resetTargetCedula: document.getElementById('resetTargetCedula'),
   btnCancelReset: document.getElementById('btnCancelReset'),
@@ -1142,7 +1206,14 @@ function renderAdminDashboard() {
     const email = candidateMeta.correo || '';
     const birth = candidateMeta.fecha_nacimiento || '';
 
-    const answersCount = item.respuestas ? Object.keys(item.respuestas).filter(k => !k.startsWith('_') && item.respuestas[k]).length : 0;
+    const gradingData = (item.respuestas && item.respuestas._calificacion) ? item.respuestas._calificacion : null;
+    let scorePillHtml = '';
+    if (gradingData && typeof gradingData.porcentaje === 'number') {
+      const pct = gradingData.porcentaje;
+      const pillClass = pct >= 75 ? 'high' : (pct >= 50 ? 'mid' : 'low');
+      scorePillHtml = `<div style="margin-top:6px;"><span class="score-pill-table ${pillClass}">⭐ Calificación: ${pct}% (${gradingData.puntos}/38)</span></div>`;
+    }
+
     const isResetEligible = item.estado === 'BLOQUEADO' || item.estado === 'EN_CURSO';
 
     return `
@@ -1157,7 +1228,10 @@ function renderAdminDashboard() {
           </div>
         </td>
         <td><strong>${escapeHtml(item.cedula)}</strong></td>
-        <td>${statusBadge}</td>
+        <td>
+          ${statusBadge}
+          ${scorePillHtml}
+        </td>
         <td>
           ${item.motivo_bloqueo
             ? `<span class="reason-tag">${escapeHtml(item.motivo_bloqueo)}</span>`
@@ -1166,16 +1240,20 @@ function renderAdminDashboard() {
         </td>
         <td class="text-right">
           <div class="table-actions">
-            <button type="button" class="btn btn-secondary btn-sm btn-view-responses" data-cedula="${item.cedula}">
+            <button type="button" class="btn btn-secondary btn-sm btn-view-responses" data-cedula="${item.cedula}" title="Ver respuestas y calificar">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              <span>Ver Respuestas</span>
+              <span>Ver / Calificar</span>
             </button>
             ${isResetEligible ? `
-              <button type="button" class="btn btn-secondary btn-sm btn-reset-candidate" data-cedula="${item.cedula}" data-name="${escapeHtml(item.nombre)}" title="Desbloquear o permitir repetir prueba">
+              <button type="button" class="btn btn-secondary btn-sm btn-reset-candidate" data-cedula="${item.cedula}" data-name="${escapeHtml(item.nombre)}" data-mode="unlock" title="Desbloquear y permitir presentar de nuevo">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 2v6h6M21.5 22v-6h-6"/><path d="M22 11.5A10 10 0 0 0 3.2 7.2M2 12.5a10 10 0 0 0 18.8 4.3"/></svg>
                 <span>Desbloquear</span>
               </button>
             ` : ''}
+            <button type="button" class="btn btn-sm btn-delete-candidate" data-cedula="${item.cedula}" data-name="${escapeHtml(item.nombre)}" data-mode="delete" title="Eliminar este registro de candidato">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              <span>Eliminar</span>
+            </button>
           </div>
         </td>
       </tr>
@@ -1194,11 +1272,12 @@ function attachAdminTableActions() {
     });
   });
 
-  document.querySelectorAll('.btn-reset-candidate').forEach(btn => {
+  document.querySelectorAll('.btn-reset-candidate, .btn-delete-candidate').forEach(btn => {
     btn.addEventListener('click', () => {
       const cedula = btn.getAttribute('data-cedula');
       const name = btn.getAttribute('data-name');
-      openConfirmResetModal(cedula, name);
+      const mode = btn.getAttribute('data-mode') || 'delete';
+      openConfirmResetModal(cedula, name, mode);
     });
   });
 }
@@ -1206,6 +1285,8 @@ function attachAdminTableActions() {
 function openResponsesModal(cedula) {
   const candidate = AppState.adminData.find(c => c.cedula === cedula);
   if (!candidate) return;
+
+  AppState.currentGradingCedula = cedula;
 
   const candidateMeta = (candidate.respuestas && candidate.respuestas._candidato) ? candidate.respuestas._candidato : {};
   const email = candidateMeta.correo || 'No registrado';
@@ -1221,6 +1302,14 @@ function openResponsesModal(cedula) {
   `;
 
   const answers = candidate.respuestas || {};
+  const savedGrades = (answers._calificacion && answers._calificacion.items) ? { ...answers._calificacion.items } : {};
+
+  // Sincronizar botón de solucionario
+  if (DOM.labelToggleAnswerKey) {
+    DOM.labelToggleAnswerKey.textContent = AppState.showAnswerKeyInModal
+      ? 'Ocultar Solucionario Guía'
+      : 'Mostrar Solucionario Guía';
+  }
 
   // Agrupar preguntas por sección
   const sections = {};
@@ -1232,7 +1321,9 @@ function openResponsesModal(cedula) {
     sections[meta.section].push({
       key: qKey,
       title: meta.title,
-      answer: answers[qKey] || ''
+      answer: answers[qKey] || '',
+      guide: EXAM_ANSWER_KEY[qKey] || '',
+      grade: savedGrades[qKey] !== undefined ? savedGrades[qKey] : null
     });
   });
 
@@ -1245,11 +1336,22 @@ function openResponsesModal(cedula) {
 
     sections[sectionTitle].forEach(item => {
       const hasAnswer = item.answer && item.answer.trim().length > 0;
+      const g = item.grade;
       html += `
-        <div class="response-item-row">
+        <div class="response-item-row" data-qkey="${item.key}">
           <div class="response-q-title">${escapeHtml(item.title)}</div>
           <div class="response-q-answer ${hasAnswer ? '' : 'empty'}">
             ${hasAnswer ? escapeHtml(item.answer) : '[Sin respuesta registrada por el candidato]'}
+          </div>
+          <div class="answer-key-guide-box ${AppState.showAnswerKeyInModal ? '' : 'hidden'}">
+            <strong>💡 Respuesta Esperada (Solucionario Oficial):</strong>
+            ${escapeHtml(item.guide)}
+          </div>
+          <div class="question-grade-controls" data-qkey="${item.key}">
+            <span class="question-grade-label">Calificar pregunta:</span>
+            <button type="button" class="btn-grade-opt grade-correct ${g === 1 ? 'active' : ''}" data-qkey="${item.key}" data-score="1">✅ Correcta (1.0)</button>
+            <button type="button" class="btn-grade-opt grade-partial ${g === 0.5 ? 'active' : ''}" data-qkey="${item.key}" data-score="0.5">⚠️ Parcial (0.5)</button>
+            <button type="button" class="btn-grade-opt grade-wrong ${g === 0 ? 'active' : ''}" data-qkey="${item.key}" data-score="0">❌ Incorrecta (0)</button>
           </div>
         </div>
       `;
@@ -1259,20 +1361,114 @@ function openResponsesModal(cedula) {
   });
 
   DOM.modalResponsesContent.innerHTML = html;
+
+  // Eventos de botones de calificación por pregunta
+  DOM.modalResponsesContent.querySelectorAll('.btn-grade-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qKey = btn.getAttribute('data-qkey');
+      const scoreVal = parseFloat(btn.getAttribute('data-score'));
+      const parent = btn.closest('.question-grade-controls');
+
+      if (btn.classList.contains('active')) {
+        btn.classList.remove('active');
+        delete savedGrades[qKey];
+      } else {
+        parent.querySelectorAll('.btn-grade-opt').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        savedGrades[qKey] = scoreVal;
+      }
+
+      updateModalGradingSummary(savedGrades);
+    });
+  });
+
+  // Guardar referencia temporal de notas en el modal
+  DOM.responsesModal._currentGrades = savedGrades;
+  updateModalGradingSummary(savedGrades);
+
   DOM.responsesModal.classList.remove('hidden');
 }
 
-function openConfirmResetModal(cedula, name) {
-  candidateToReset = { cedula, name };
+function updateModalGradingSummary(gradesMap) {
+  if (!DOM.liveGradingScore) return;
+  const keys = Object.keys(gradesMap || {});
+  if (keys.length === 0) {
+    DOM.liveGradingScore.textContent = 'Sin calificar (0 / 38)';
+    return;
+  }
+  const totalPoints = keys.reduce((acc, k) => acc + (Number(gradesMap[k]) || 0), 0);
+  const percentage = Math.round((totalPoints / TOTAL_QUESTIONS_COUNT) * 100);
+  DOM.liveGradingScore.textContent = `${percentage}% (${totalPoints} / ${TOTAL_QUESTIONS_COUNT} pts · ${keys.length} evaluadas)`;
+}
+
+async function saveCandidateGrading() {
+  const cedula = AppState.currentGradingCedula;
+  if (!cedula) return;
+
+  const candidate = AppState.adminData.find(c => c.cedula === cedula);
+  if (!candidate) return;
+
+  const gradesMap = DOM.responsesModal._currentGrades || {};
+  const keys = Object.keys(gradesMap);
+  const totalPoints = keys.reduce((acc, k) => acc + (Number(gradesMap[k]) || 0), 0);
+  const percentage = Math.round((totalPoints / TOTAL_QUESTIONS_COUNT) * 100);
+
+  const updatedAnswers = {
+    ...(candidate.respuestas || {}),
+    _calificacion: {
+      puntos: totalPoints,
+      porcentaje: percentage,
+      evaluadas: keys.length,
+      fecha_calificacion: new Date().toISOString(),
+      items: gradesMap
+    }
+  };
+
+  try {
+    if (DOM.btnSaveGrading) {
+      DOM.btnSaveGrading.disabled = true;
+      DOM.btnSaveGrading.textContent = 'Guardando...';
+    }
+    await DatabaseService.saveAnswers(cedula, updatedAnswers);
+    candidate.respuestas = updatedAnswers;
+    renderAdminDashboard();
+    showToast('Calificación Guardada', `Se guardó el puntaje de ${percentage}% (${totalPoints}/38) para ${candidate.nombre}.`, 'success');
+  } catch (err) {
+    console.error('Error al guardar calificación:', err);
+    showToast('Error', 'No se pudo guardar la calificación en la base de datos.', 'error');
+  } finally {
+    if (DOM.btnSaveGrading) {
+      DOM.btnSaveGrading.disabled = false;
+      DOM.btnSaveGrading.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span>Guardar Calificación</span>
+      `;
+    }
+  }
+}
+
+function openConfirmResetModal(cedula, name, mode = 'delete') {
+  candidateToReset = { cedula, name, mode };
   DOM.resetTargetName.textContent = name;
   DOM.resetTargetCedula.textContent = cedula;
+
+  if (mode === 'unlock') {
+    if (DOM.confirmModalTitle) DOM.confirmModalTitle.textContent = '¿Desbloquear y Reiniciar Candidato?';
+    if (DOM.confirmModalSubtitle) DOM.confirmModalSubtitle.textContent = 'Se restablecerá el registro actual para permitir que el candidato vuelva a presentar la evaluación desde cero.';
+    if (DOM.btnConfirmReset) DOM.btnConfirmReset.textContent = 'Sí, Desbloquear y Reiniciar';
+  } else {
+    if (DOM.confirmModalTitle) DOM.confirmModalTitle.textContent = '¿Eliminar Registro de Candidato?';
+    if (DOM.confirmModalSubtitle) DOM.confirmModalSubtitle.textContent = 'Esta acción eliminará permanentemente este registro de prueba de la base de datos de Recursos Humanos.';
+    if (DOM.btnConfirmReset) DOM.btnConfirmReset.textContent = 'Sí, Eliminar Registro';
+  }
+
   DOM.confirmResetModal.classList.remove('hidden');
 }
 
 async function executeCandidateReset() {
   if (!candidateToReset) return;
 
-  const { cedula } = candidateToReset;
+  const { cedula, name, mode } = candidateToReset;
   try {
     await DatabaseService.deleteCandidate(cedula);
 
@@ -1285,13 +1481,18 @@ async function executeCandidateReset() {
     }
     sessionStorage.removeItem(`LP_EXAM_START_${cedula}`);
 
-    showToast('Candidato Reiniciado', `Se ha restablecido el registro para la cédula ${cedula}. Ya puede volver a ingresar.`, 'success');
+    if (mode === 'unlock') {
+      showToast('Candidato Desbloqueado', `Se ha restablecido el registro de ${name} (${cedula}). Ya puede volver a ingresar.`, 'success');
+    } else {
+      showToast('Registro Eliminado', `Se eliminó correctamente el registro de ${name} (${cedula}).`, 'success');
+    }
+
     DOM.confirmResetModal.classList.add('hidden');
     candidateToReset = null;
     loadAdminData();
   } catch (err) {
-    console.error('Error al resetear candidato:', err);
-    showToast('Error', 'No fue posible resetear el registro.', 'error');
+    console.error('Error al eliminar/resetear candidato:', err);
+    showToast('Error', 'No fue posible eliminar el registro.', 'error');
   }
 }
 
@@ -1429,6 +1630,40 @@ function initApp() {
   if (DOM.btnExportResponses) {
     DOM.btnExportResponses.addEventListener('click', () => window.print());
   }
+  if (DOM.btnToggleAnswerKey) {
+    DOM.btnToggleAnswerKey.addEventListener('click', () => {
+      AppState.showAnswerKeyInModal = !AppState.showAnswerKeyInModal;
+      if (DOM.labelToggleAnswerKey) {
+        DOM.labelToggleAnswerKey.textContent = AppState.showAnswerKeyInModal
+          ? 'Ocultar Solucionario Guía'
+          : 'Mostrar Solucionario Guía';
+      }
+      document.querySelectorAll('.answer-key-guide-box').forEach(box => {
+        if (AppState.showAnswerKeyInModal) {
+          box.classList.remove('hidden');
+        } else {
+          box.classList.add('hidden');
+        }
+      });
+    });
+  }
+  if (DOM.btnSaveGrading) {
+    DOM.btnSaveGrading.addEventListener('click', saveCandidateGrading);
+  }
+
+  // Botones de activar/silenciar audio en videos corporativos
+  document.querySelectorAll('.btn-video-sound').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-video-target');
+      const videoEl = document.getElementById(targetId);
+      if (!videoEl) return;
+      videoEl.muted = !videoEl.muted;
+      const label = btn.querySelector('.sound-label');
+      if (label) {
+        label.textContent = videoEl.muted ? 'Activar Audio' : 'Silenciar Audio';
+      }
+    });
+  });
 
   if (DOM.btnCancelReset) {
     DOM.btnCancelReset.addEventListener('click', () => {

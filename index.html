@@ -82,6 +82,18 @@
       </div>
 
       <div class="card login-card shadow-xl">
+        <!-- Video Corporativo Institucional en Registro -->
+        <div class="corporate-video-showcase login-video-box">
+          <video id="loginCorporateVideo" class="corporate-video-player" src="assets/video.mp4" autoplay loop muted playsinline preload="auto"></video>
+          <div class="video-overlay-bar">
+            <span class="video-badge-pill">LOZADA &amp; PARTNERS SAS • Selección de Talento</span>
+            <button type="button" class="btn-video-sound" data-video="loginCorporateVideo" title="Activar o silenciar audio del video">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <span class="sound-label">Activar Audio</span>
+            </button>
+          </div>
+        </div>
+
         <div class="card-header text-center">
           <span class="badge-role">Convocatoria Especializada</span>
           <h2>Prueba Técnica – Especialista de Nómina</h2>
@@ -959,6 +971,29 @@
 
     <div class="admin-main-container">
       
+      <!-- Banner Institucional con Video Corporativo en Dashboard de Paola -->
+      <div class="admin-hero-banner card">
+        <div class="admin-hero-info">
+          <span class="badge-role">Portal de Selección y Evaluación Técnica</span>
+          <h2>Bienvenida, Paola — Gestión de Talento Humano</h2>
+          <p class="text-muted text-sm">
+            Supervisa en tiempo real las pruebas técnicas de Especialista de Nómina, consulta el solucionario oficial para calificar cada respuesta y administra los registros de candidatos de <strong>LOZADA &amp; PARTNERS SAS</strong>.
+          </p>
+        </div>
+        <div class="admin-hero-video-wrapper">
+          <div class="corporate-video-showcase admin-video-box">
+            <video id="adminCorporateVideo" class="corporate-video-player" src="assets/video.mp4" autoplay loop muted playsinline preload="auto"></video>
+            <div class="video-overlay-bar compact">
+              <span class="video-badge-pill">Video Institucional</span>
+              <button type="button" class="btn-video-sound" data-video="adminCorporateVideo" title="Activar o silenciar audio del video">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                <span class="sound-label">Audio</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Métricas / Estadísticas Rápidas -->
       <div class="stats-overview-grid">
         <div class="stat-card">
@@ -1034,9 +1069,9 @@
             <thead>
               <tr>
                 <th>Fecha y Hora</th>
-                <th>Nombre del Candidato</th>
-                <th>Cédula</th>
-                <th>Estado</th>
+                <th>Datos del Candidato</th>
+                <th>Cédula / Avance</th>
+                <th>Estado / Nota</th>
                 <th>Motivo de Bloqueo / Incidencia</th>
                 <th class="text-right">Acciones</th>
               </tr>
@@ -1054,21 +1089,39 @@
   </section>
 
   <!-- ========================================================================= -->
-  <!-- 6. MODAL ADMINISTRADOR: VER RESPUESTAS COMPLETAS DEL CANDIDATO -->
+  <!-- 6. MODAL ADMINISTRADOR: VER Y CALIFICAR RESPUESTAS DEL CANDIDATO -->
   <!-- ========================================================================= -->
   <div id="responsesModal" class="modal-overlay hidden">
     <div class="modal-container modal-lg">
       <div class="modal-header">
         <div>
-          <span class="badge-role">Revisión Técnica de Respuestas</span>
+          <span class="badge-role">Revisión Técnica y Calificación de Respuestas</span>
           <h2 id="modalCandidateNameTitle">Respuestas de Candidato</h2>
           <p class="text-muted text-sm" id="modalCandidateMetaInfo">C.C. 000000 | Presentado el: ---</p>
         </div>
         <button type="button" class="btn-close" id="btnCloseResponsesModal">&times;</button>
       </div>
 
+      <!-- Barra de Herramientas de Calificación y Solucionario para Paola -->
+      <div class="modal-grading-toolbar">
+        <div class="grading-score-summary">
+          <span class="grading-score-label">Calificación:</span>
+          <span class="grading-score-badge" id="liveGradingScore">Sin calificar (0 / 38)</span>
+        </div>
+        <div class="grading-toolbar-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnToggleAnswerKey">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span id="labelToggleAnswerKey">Mostrar Solucionario Guía</span>
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" id="btnSaveGrading">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span>Guardar Calificación</span>
+          </button>
+        </div>
+      </div>
+
       <div class="modal-body modal-scrollable" id="modalResponsesContent">
-        <!-- Renderizado dinámico de las 7 secciones con respuestas -->
+        <!-- Renderizado dinámico de las 7 secciones con respuestas y calificador -->
       </div>
 
       <div class="modal-footer">
@@ -1079,26 +1132,26 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- 7. MODAL DE CONFIRMACIÓN PARA REINICIAR / DESBLOQUEAR -->
+  <!-- 7. MODAL DE CONFIRMACIÓN PARA ELIMINAR / DESBLOQUEAR REGISTRO -->
   <!-- ========================================================================= -->
   <div id="confirmResetModal" class="modal-overlay hidden">
     <div class="modal-container modal-sm">
       <div class="modal-header">
-        <div class="header-icon-box amber">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div class="header-icon-box amber" id="confirmModalIconBox">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
         </div>
         <div>
-          <h3>¿Desbloquear / Reiniciar Candidato?</h3>
-          <p class="text-muted text-xs">Esta acción permitirá al candidato volver a presentar la prueba técnica desde cero.</p>
+          <h3 id="confirmModalTitle">¿Eliminar / Reiniciar Registro?</h3>
+          <p class="text-muted text-xs" id="confirmModalSubtitle">Esta acción eliminará el registro de la base de datos y permitirá volver a presentar la prueba si es necesario.</p>
         </div>
       </div>
       <div class="modal-body">
-        <p>¿Deseas resetear o eliminar el registro del candidato <strong id="resetTargetName">---</strong> (C.C. <strong id="resetTargetCedula">---</strong>)?</p>
-        <p class="text-xs text-muted mt-2">Se eliminarán las respuestas anteriores y su estado actual para que pueda iniciar sesión nuevamente.</p>
+        <p>¿Confirmas que deseas eliminar el registro del candidato <strong id="resetTargetName">---</strong> (C.C. <strong id="resetTargetCedula">---</strong>)?</p>
+        <p class="text-xs text-muted mt-2">El registro se borrará de la tabla de seguimiento y la cédula quedará habilitada nuevamente desde cero.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btnCancelReset">Cancelar</button>
-        <button type="button" class="btn btn-danger" id="btnConfirmReset">Sí, Desbloquear y Reiniciar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmReset">Sí, Eliminar Registro</button>
       </div>
     </div>
   </div>

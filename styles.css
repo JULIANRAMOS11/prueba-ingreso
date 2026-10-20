@@ -1722,9 +1722,234 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==============================================================================
+   VIDEO CORPORATIVO (LOGIN DE REGISTRO Y DASHBOARD DE PAOLA)
+   ============================================================================== */
+.corporate-video-showcase {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: #0f172a;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--slate-200);
+}
+
+.login-video-box {
+  margin-bottom: 1.5rem;
+}
+
+.corporate-video-player {
+  width: 100%;
+  height: auto;
+  max-height: 230px;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-video-box .corporate-video-player {
+  max-height: 175px;
+}
+
+.video-overlay-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.55rem 0.85rem;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.video-badge-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(30, 58, 138, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+}
+
+.btn-video-sound {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--primary-900);
+  border: none;
+  padding: 0.28rem 0.7rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-video-sound:hover {
+  background: #ffffff;
+  transform: scale(1.03);
+}
+
+.admin-hero-banner {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  align-items: center;
+  gap: 1.75rem;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--slate-200);
+}
+
+.admin-hero-info h2 {
+  font-size: 1.35rem;
+  color: var(--primary-900);
+  margin: 0.35rem 0 0.5rem;
+}
+
+/* ==============================================================================
+   SISTEMA DE CALIFICACIÓN Y SOLUCIONARIO EN MODAL DE PAOLA
+   ============================================================================== */
+.modal-grading-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.85rem 1.5rem;
+  background-color: #f8fafc;
+  border-bottom: 1px solid var(--slate-200);
+}
+
+.grading-score-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grading-score-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--slate-600);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.grading-score-badge {
+  background-color: var(--primary-50);
+  color: var(--primary-800);
+  border: 1px solid var(--primary-200);
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.grading-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.answer-key-guide-box {
+  margin-top: 0.55rem;
+  padding: 0.65rem 0.9rem;
+  background-color: #ecfdf5;
+  border-left: 3px solid #10b981;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-size: 0.8rem;
+  color: #065f46;
+  line-height: 1.45;
+}
+
+.answer-key-guide-box strong {
+  color: #047857;
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.question-grade-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.btn-grade-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--slate-300);
+  background: var(--white);
+  color: var(--slate-600);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-grade-opt:hover {
+  border-color: var(--slate-400);
+  background: var(--slate-50);
+}
+
+.btn-grade-opt.active-correct {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #15803d;
+}
+
+.btn-grade-opt.active-partial {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+.btn-grade-opt.active-wrong {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+.btn-delete-candidate {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+}
+
+.btn-delete-candidate:hover {
+  background-color: #fee2e2 !important;
+  border-color: #f87171 !important;
+  color: #991b1b !important;
+}
+
+.score-pill-table {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* ==============================================================================
    RESPONSIVIDAD Y ESTILOS DE IMPRESIÓN
    ============================================================================== */
 @media (max-width: 768px) {
+  .admin-hero-banner {
+    grid-template-columns: 1fr;
+  }
   .header-container {
     flex-direction: column;
     align-items: flex-start;
