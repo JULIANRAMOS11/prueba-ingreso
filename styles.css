@@ -580,6 +580,93 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--slate-200);
 }
 
+/* Cronómetro de 1 Hora y Media */
+.timer-meta {
+  display: flex;
+  align-items: center;
+}
+
+.timer-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background-color: var(--slate-100);
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.95rem;
+  transition: all 0.25s ease;
+}
+
+.timer-svg-icon {
+  color: var(--primary-600);
+  flex-shrink: 0;
+}
+
+.timer-pill-texts {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.timer-pill-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slate-500);
+}
+
+.timer-pill-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--primary-900);
+  letter-spacing: 0.06em;
+}
+
+/* Advertencia cuando quedan menos de 15 minutos */
+.timer-pill.timer-warning {
+  background-color: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.timer-pill.timer-warning .timer-svg-icon,
+.timer-pill.timer-warning .timer-pill-label,
+.timer-pill.timer-warning .timer-pill-value {
+  color: #b45309;
+}
+
+/* Advertencia crítica cuando quedan menos de 5 minutos */
+.timer-pill.timer-critical {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  animation: timer-pulse-alert 1.2s infinite;
+}
+
+.timer-pill.timer-critical .timer-svg-icon,
+.timer-pill.timer-critical .timer-pill-label,
+.timer-pill.timer-critical .timer-pill-value {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+@keyframes timer-pulse-alert {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    transform: scale(1);
+  }
+}
+
 .supervision-status {
   display: flex;
   align-items: center;
@@ -1541,6 +1628,17 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
+  }
+
+  .candidate-meta,
+  .timer-meta {
+    width: 100%;
+  }
+
+  .candidate-pill,
+  .timer-pill {
+    width: 100%;
+    justify-content: center;
   }
   
   .supervision-status {

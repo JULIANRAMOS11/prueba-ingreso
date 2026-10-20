@@ -387,16 +387,129 @@ const DatabaseService = {
 };
 
 // ==============================================================================
+// 6.5 CRONÓMETRO DE EVALUACIÓN: 1 HORA Y MEDIA (90 MINUTOS = 5400 SEGUNDOS)
+// ==============================================================================
+const ExamTimer = {
+  TOTAL_DURATION_SECONDS: 90 * 60, // 5400 segundos = 1 hora y 30 minutos
+  intervalId: null,
+  startTime: null,
+
+  init(candidateCedula, existingStartTime = null) {
+    this.stop();
+
+    const storageKey = `LP_EXAM_START_${candidateCedula}`;
+    let start = existingStartTime;
+
+    if (!start) {
+      const stored = sessionStorage.getItem(storageKey);
+      if (stored) {
+        start = parseInt(stored, 10);
+      }
+    }
+
+    if (!start || isNaN(start)) {
+      start = Date.now();
+      sessionStorage.setItem(storageKey, start.toString());
+    }
+
+    this.startTime = start;
+    this.updateDisplay();
+
+    this.intervalId = setInterval(() => {
+      this.tick();
+    }, 1000);
+  },
+
+  getRemainingSeconds() {
+    if (!this.startTime) return this.TOTAL_DURATION_SECONDS;
+    const elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+    return Math.max(0, this.TOTAL_DURATION_SECONDS - elapsedSeconds);
+  },
+
+  tick() {
+    if (!AppState.isExamActive || AppState.isBlocked) {
+      this.stop();
+      return;
+    }
+
+    const remaining = this.getRemainingSeconds();
+    this.updateDisplay(remaining);
+
+    // Advertencias en pantalla
+    if (remaining === 900) { // 15 minutos
+      showToast('Tiempo Restante', 'Atención: Dispone de los últimos 15 minutos para finalizar su prueba técnica.', 'warning');
+    } else if (remaining === 300) { // 5 minutos
+      showToast('Tiempo Crítico', 'Últimos 5 minutos de examen. Asegúrese de completar sus respuestas.', 'error');
+    }
+
+    // Al llegar a 0 segundos, auto-envío del examen
+    if (remaining <= 0) {
+      this.stop();
+      this.handleExpired();
+    }
+  },
+
+  updateDisplay(remaining = null) {
+    if (remaining === null) remaining = this.getRemainingSeconds();
+
+    const hours = Math.floor(remaining / 3600);
+    const minutes = Math.floor((remaining % 3600) / 60);
+    const seconds = remaining % 60;
+
+    const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+    const displayEl = document.getElementById('examCountdown');
+    const pillEl = document.getElementById('examTimerPill');
+
+    if (displayEl) {
+      displayEl.textContent = formatted;
+    }
+
+    if (pillEl) {
+      if (remaining <= 300) {
+        pillEl.className = 'timer-pill timer-critical';
+      } else if (remaining <= 900) {
+        pillEl.className = 'timer-pill timer-warning';
+      } else {
+        pillEl.className = 'timer-pill';
+      }
+    }
+  },
+
+  async handleExpired() {
+    console.warn('⏱️ Límite de tiempo alcanzado (1h 30m). Enviando evaluación automáticamente.');
+    showToast('Tiempo Cumplido', 'Ha finalizado la hora y media de evaluación. Guardando y enviando sus respuestas...', 'warning');
+    await handleSubmitExam(true);
+  },
+
+  stop() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+  }
+};
+
+// ==============================================================================
 // 7. SISTEMA ANTIFRAUDE ESTRICTO (ACTIVO ÚNICAMENTE EN EXAMEN)
 // ==============================================================================
 const AntiFraudSystem = {
+  isPaused: false,
   eventHandlers: {},
+
+  pause() {
+    this.isPaused = true;
+  },
+
+  resume() {
+    this.isPaused = false;
+  },
 
   init() {
     this.eventHandlers = {
       // 1. Cambio de pestaña / minimización
       visibilityChange: () => {
-        if (!AppState.isExamActive || AppState.isBlocked) return;
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
         if (document.hidden) {
           this.triggerBlock('Cambio de pestaña o minimización del navegador detectado (visibilitychange).');
         }
@@ -404,41 +517,65 @@ const AntiFraudSystem = {
 
       // 2. Pérdida de foco de ventana (Alt+Tab, otra pantalla, app externa)
       windowBlur: () => {
-        if (!AppState.isExamActive || AppState.isBlocked) return;
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
         this.triggerBlock('Pérdida de foco de la ventana detectada (abrió otra ventana, aplicación o monitor secundario).');
       },
 
-      // 3. Intento de copiar
+      // 3. Intento de recargar o abandonar la página
+      beforeUnload: (e) => {
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
+        const msg = 'La prueba técnica está en curso. Si recarga o abandona esta página, su examen será anulado definitivamente.';
+        e.preventDefault();
+        e.returnValue = msg;
+        return msg;
+      },
+
+      // 4. Salida o navegación externa
+      pageHide: () => {
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
+        this.triggerBlock('Abandono de la página detectado (pagehide/navegación externa).');
+      },
+
+      // 5. Intento de navegación con botones atrás/adelante del navegador
+      popState: () => {
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
+        try {
+          history.pushState({ inExam: true }, '', window.location.href);
+        } catch (e) {}
+        this.triggerBlock('Intento de navegación hacia atrás o cambio de página en el navegador.');
+      },
+
+      // 6. Intento de copiar
       copy: (e) => {
-        if (!AppState.isExamActive || AppState.isBlocked) return;
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
         e.preventDefault();
         this.triggerBlock('Intento de copiar texto de la prueba (evento copy detectado).');
       },
 
-      // 4. Intento de cortar
+      // 7. Intento de cortar
       cut: (e) => {
-        if (!AppState.isExamActive || AppState.isBlocked) return;
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
         e.preventDefault();
         this.triggerBlock('Intento de cortar texto (evento cut detectado).');
       },
 
-      // 5. Intento de pegar (incluso en inputs o textareas)
+      // 8. Intento de pegar (incluso en inputs o textareas)
       paste: (e) => {
-        if (!AppState.isExamActive || AppState.isBlocked) return;
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
         e.preventDefault();
         this.triggerBlock('Intento de pegar contenido externo en el examen (evento paste detectado).');
       },
 
-      // 6. Clic derecho / menú contextual
+      // 9. Clic derecho / menú contextual
       contextMenu: (e) => {
-        if (!AppState.isExamActive || AppState.isBlocked) return;
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
         e.preventDefault();
         this.triggerBlock('Intento de abrir menú contextual con clic derecho (contextmenu).');
       },
 
-      // 7. Intento de seleccionar texto fuera de inputs y textareas
+      // 10. Intento de seleccionar texto fuera de inputs y textareas
       selectStart: (e) => {
-        if (!AppState.isExamActive || AppState.isBlocked) return;
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
         const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
         if (targetTag !== 'INPUT' && targetTag !== 'TEXTAREA') {
           e.preventDefault();
@@ -446,9 +583,9 @@ const AntiFraudSystem = {
         }
       },
 
-      // 8. Atajos de teclado bloqueados (F12, Ctrl+Shift+I, Ctrl+C, Ctrl+V, etc.)
+      // 11. Atajos de teclado bloqueados (F12, Ctrl+Shift+I, Ctrl+C, Ctrl+V, etc.)
       keyDown: (e) => {
-        if (!AppState.isExamActive || AppState.isBlocked) return;
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
 
         const isCtrlOrCmd = e.ctrlKey || e.metaKey;
         const key = e.key.toUpperCase();
@@ -514,8 +651,12 @@ const AntiFraudSystem = {
 
   activate() {
     this.init();
+    this.isPaused = false;
     document.addEventListener('visibilitychange', this.eventHandlers.visibilityChange);
     window.addEventListener('blur', this.eventHandlers.windowBlur);
+    window.addEventListener('beforeunload', this.eventHandlers.beforeUnload);
+    window.addEventListener('pagehide', this.eventHandlers.pageHide);
+    window.addEventListener('popstate', this.eventHandlers.popState);
     document.addEventListener('copy', this.eventHandlers.copy);
     document.addEventListener('cut', this.eventHandlers.cut);
     document.addEventListener('paste', this.eventHandlers.paste);
@@ -526,8 +667,12 @@ const AntiFraudSystem = {
   },
 
   deactivate() {
+    if (!this.eventHandlers.visibilityChange) return;
     document.removeEventListener('visibilitychange', this.eventHandlers.visibilityChange);
     window.removeEventListener('blur', this.eventHandlers.windowBlur);
+    window.removeEventListener('beforeunload', this.eventHandlers.beforeUnload);
+    window.removeEventListener('pagehide', this.eventHandlers.pageHide);
+    window.removeEventListener('popstate', this.eventHandlers.popState);
     document.removeEventListener('copy', this.eventHandlers.copy);
     document.removeEventListener('cut', this.eventHandlers.cut);
     document.removeEventListener('paste', this.eventHandlers.paste);
@@ -544,6 +689,7 @@ const AntiFraudSystem = {
 
     // Desactivar inmediatamente para no disparar llamadas en bucle
     this.deactivate();
+    ExamTimer.stop();
 
     console.error('🚨 BLOQUEO ANTIFRAUDE DISPARADO:', reason);
 
@@ -593,6 +739,10 @@ function collectCurrentAnswers() {
       answers[input.id] = input.value.trim();
     }
   });
+
+  if (ExamTimer.startTime) {
+    answers._exam_start_time = ExamTimer.startTime;
+  }
   return answers;
 }
 
@@ -669,6 +819,7 @@ function renderBlockedView(data) {
 
 function renderFinishedView(data) {
   hideAllViews();
+  ExamTimer.stop();
   if (DOM.viewFinished) {
     DOM.finishedCandidateName.textContent = data.nombre || 'Candidato';
     DOM.finishedCandidateCedula.textContent = data.cedula || '---';
@@ -689,6 +840,7 @@ function startExamView(candidate, existingAnswers = {}) {
   // Restaurar respuestas si existían
   if (existingAnswers && typeof existingAnswers === 'object') {
     Object.keys(existingAnswers).forEach(key => {
+      if (key.startsWith('_')) return;
       const field = document.getElementById(key);
       if (field) {
         field.value = existingAnswers[key];
@@ -699,6 +851,17 @@ function startExamView(candidate, existingAnswers = {}) {
   updateProgress();
   DOM.viewExam.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  // Iniciar temporizador de 1 hora y 30 minutos (conserva tiempo si es reanudación)
+  const prevStartTime = (existingAnswers && existingAnswers._exam_start_time)
+    || (candidate.respuestas && candidate.respuestas._exam_start_time)
+    || null;
+  ExamTimer.init(candidate.cedula, prevStartTime);
+
+  // Historial para capturar intento de navegación atrás
+  try {
+    history.pushState({ inExam: true }, '', window.location.href);
+  } catch (e) {}
 
   // ACTIVAR EL SISTEMA ANTIFRAUDE
   AntiFraudSystem.activate();
@@ -797,22 +960,31 @@ async function handleCandidateLogin(e) {
 // ==============================================================================
 // 11. FINALIZACIÓN Y ENVÍO DEL EXAMEN
 // ==============================================================================
-async function handleSubmitExam() {
+async function handleSubmitExam(isAutoSubmit = false) {
   if (!AppState.isExamActive || AppState.isBlocked) return;
 
   const currentAnswers = collectCurrentAnswers();
-  const answeredCount = Object.keys(currentAnswers).filter(k => currentAnswers[k].length > 0).length;
+  const answeredCount = Object.keys(currentAnswers).filter(k => !k.startsWith('_') && currentAnswers[k].length > 0).length;
 
-  const confirmMsg = answeredCount < TOTAL_QUESTIONS_COUNT
-    ? `Ha respondido ${answeredCount} de las ${TOTAL_QUESTIONS_COUNT} preguntas. ¿Está seguro de enviar su prueba técnica ahora? No podrá modificarla después.`
-    : `Ha completado las ${TOTAL_QUESTIONS_COUNT} preguntas. ¿Desea enviar y finalizar su prueba técnica de manera definitiva?`;
+  if (!isAutoSubmit) {
+    // Pausar temporalmente antifraude para que el modal confirm nativo no dispare window.blur
+    AntiFraudSystem.pause();
 
-  const confirmed = window.confirm(confirmMsg);
-  if (!confirmed) return;
+    const confirmMsg = answeredCount < TOTAL_QUESTIONS_COUNT
+      ? `Ha respondido ${answeredCount} de las ${TOTAL_QUESTIONS_COUNT} preguntas. ¿Está seguro de enviar su prueba técnica ahora? No podrá modificarla después.`
+      : `Ha completado las ${TOTAL_QUESTIONS_COUNT} preguntas. ¿Desea enviar y finalizar su prueba técnica de manera definitiva?`;
 
-  // Desactivar inmediatamente el antifraude puesto que ya finalizó válidamente
+    const confirmed = window.confirm(confirmMsg);
+    if (!confirmed) {
+      AntiFraudSystem.resume();
+      return;
+    }
+  }
+
+  // Desactivar definitivamente el antifraude y detener el cronómetro
   AppState.isExamActive = false;
   AntiFraudSystem.deactivate();
+  ExamTimer.stop();
 
   showToast('Enviando', 'Guardando respuestas finales en el sistema...', 'info');
 
@@ -1042,6 +1214,7 @@ async function executeCandidateReset() {
       sessionStorage.removeItem('LP_BLOCKED_NAME');
       sessionStorage.removeItem('LP_BLOCKED_TIMESTAMP');
     }
+    sessionStorage.removeItem(`LP_EXAM_START_${cedula}`);
 
     showToast('Candidato Reiniciado', `Se ha restablecido el registro para la cédula ${cedula}. Ya puede volver a ingresar.`, 'success');
     DOM.confirmResetModal.classList.add('hidden');
@@ -1186,7 +1359,7 @@ function initApp() {
 
   // Botón de Enviar Examen
   if (DOM.btnSubmitExam) {
-    DOM.btnSubmitExam.addEventListener('click', handleSubmitExam);
+    DOM.btnSubmitExam.addEventListener('click', () => handleSubmitExam(false));
   }
 }
 

@@ -89,7 +89,8 @@
           <div class="warning-text">
             <strong>SISTEMA DE SUPERVISIÓN Y SEGURIDAD ANTIFRAUDE ACTIVO</strong>
             <p>
-              Durante el desarrollo de la prueba no está permitido salir de la pestaña, minimizar la ventana, cambiar de aplicación, copiar, pegar ni abrir las herramientas de desarrollo. Cualquier incidencia anulará la prueba de forma automática e irreversible.
+              • <strong>Tiempo límite:</strong> Dispone de exactamente <strong>1 hora y 30 minutos (90 minutos)</strong> para resolver la prueba. Un cronómetro en vivo le indicará el tiempo restante y, al agotarse, sus respuestas se enviarán automáticamente.<br>
+              • <strong>Permanencia obligatoria en la página:</strong> No está permitido cambiar de pestaña, minimizar el navegador, pasar a otra ventana (Alt+Tab), copiar, pegar o abrir herramientas de desarrollo. <strong>Cualquier cambio de página anula la prueba de forma inmediata e irreversible.</strong>
             </p>
           </div>
         </div>
@@ -160,6 +161,17 @@
           </div>
         </div>
 
+        <!-- Cronómetro de 1 Hora y Media (90 minutos) -->
+        <div class="timer-meta">
+          <div class="timer-pill" id="examTimerPill" title="Tiempo restante para completar la prueba (Límite: 1 hora y 30 minutos)">
+            <svg class="timer-svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div class="timer-pill-texts">
+              <span class="timer-pill-label">Tiempo Restante (1h 30m)</span>
+              <span class="timer-pill-value" id="examCountdown">01:30:00</span>
+            </div>
+          </div>
+        </div>
+
         <div class="supervision-status">
           <div class="status-shield-indicator active">
             <span class="pulsing-shield-dot"></span>
@@ -198,7 +210,7 @@
           </div>
           <div class="anti-cheat-mini-banner">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>Recordatorio: Si cambia de pestaña, sale de la ventana o intenta copiar texto, su prueba será anulada inmediatamente.</span>
+            <span><strong>Duración: 1 hora y 30 minutos.</strong> Prohibido salir de la página: Si cambia de pestaña, minimiza, pasa a otra ventana o intenta copiar texto, su prueba será anulada inmediatamente.</span>
           </div>
         </div>
 
