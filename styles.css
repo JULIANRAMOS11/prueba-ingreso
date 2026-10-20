@@ -1751,9 +1751,9 @@ h1, h2, h3, h4, h5, h6 {
   min-height: 100%;
   width: auto;
   height: auto;
-  transform: translate(-50%, -50%) scale(1.18);
+  transform: translate(-50%, -50%) scale(1.04);
   object-fit: cover;
-  filter: blur(18px) brightness(0.62) saturate(1.2);
+  filter: blur(4px) brightness(0.74) saturate(1.1);
   will-change: transform, filter;
 }
 
@@ -1763,9 +1763,7 @@ h1, h2, h3, h4, h5, h6 {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.45) 0%, rgba(8, 15, 30, 0.8) 100%);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.25) 0%, rgba(8, 15, 30, 0.65) 100%);
 }
 
 /* Elevación de vistas para flotar sobre el fondo ambiental */
