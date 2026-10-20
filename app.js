@@ -148,6 +148,7 @@ const TOTAL_QUESTIONS_COUNT = Object.keys(EXAM_QUESTIONS_MAP).length; // 38 preg
 // ==============================================================================
 const AppState = {
   currentCandidate: null,
+  candidateMeta: null,
   isExamActive: false,
   isBlocked: false,
   autosaveTimer: null,
@@ -169,8 +170,11 @@ const DOM = {
 
   // Formularios
   candidateLoginForm: document.getElementById('candidateLoginForm'),
-  candidateFullName: document.getElementById('candidateFullName'),
+  candidateNombres: document.getElementById('candidateNombres'),
+  candidateApellidos: document.getElementById('candidateApellidos'),
   candidateCedula: document.getElementById('candidateCedula'),
+  candidateEmail: document.getElementById('candidateEmail'),
+  candidateBirthDate: document.getElementById('candidateBirthDate'),
   acceptSupervisionCheck: document.getElementById('acceptSupervisionCheck'),
   technicalExamForm: document.getElementById('technicalExamForm'),
   btnSubmitExam: document.getElementById('btnSubmitExam'),
@@ -217,14 +221,6 @@ const DOM = {
   resetTargetCedula: document.getElementById('resetTargetCedula'),
   btnCancelReset: document.getElementById('btnCancelReset'),
   btnConfirmReset: document.getElementById('btnConfirmReset'),
-
-  configModal: document.getElementById('configModal'),
-  btnOpenConfigModal: document.getElementById('btnOpenConfigModal'),
-  btnCloseConfig: document.getElementById('btnCloseConfig'),
-  btnCancelConfig: document.getElementById('btnCancelConfig'),
-  btnSaveConfig: document.getElementById('btnSaveConfig'),
-  cfgSupabaseUrl: document.getElementById('cfgSupabaseUrl'),
-  cfgSupabaseKey: document.getElementById('cfgSupabaseKey'),
 
   // Login de Administrador (Paola)
   btnOpenAdminLogin: document.getElementById('btnOpenAdminLogin'),
@@ -754,6 +750,9 @@ function collectCurrentAnswers() {
   if (ExamTimer.startTime) {
     answers._exam_start_time = ExamTimer.startTime;
   }
+  if (AppState.candidateMeta) {
+    answers._candidato = AppState.candidateMeta;
+  }
   return answers;
 }
 
@@ -845,6 +844,13 @@ function startExamView(candidate, existingAnswers = {}) {
   AppState.isExamActive = true;
   AppState.isBlocked = false;
 
+  // Restaurar metadatos del candidato si existían en respuestas
+  if (existingAnswers && existingAnswers._candidato) {
+    AppState.candidateMeta = existingAnswers._candidato;
+  } else if (candidate.respuestas && candidate.respuestas._candidato) {
+    AppState.candidateMeta = candidate.respuestas._candidato;
+  }
+
   if (DOM.headerCandidateName) DOM.headerCandidateName.textContent = candidate.nombre;
   if (DOM.headerCandidateCedula) DOM.headerCandidateCedula.textContent = candidate.cedula;
 
@@ -884,18 +890,42 @@ function startExamView(candidate, existingAnswers = {}) {
 async function handleCandidateLogin(e) {
   e.preventDefault();
 
-  const fullName = DOM.candidateFullName.value.trim();
-  const cedula = sanitizeCedula(DOM.candidateCedula.value);
+  const nombres = DOM.candidateNombres ? DOM.candidateNombres.value.trim() : '';
+  const apellidos = DOM.candidateApellidos ? DOM.candidateApellidos.value.trim() : '';
+  const cedula = DOM.candidateCedula ? sanitizeCedula(DOM.candidateCedula.value) : '';
+  const email = DOM.candidateEmail ? DOM.candidateEmail.value.trim() : '';
+  const birthDate = DOM.candidateBirthDate ? DOM.candidateBirthDate.value.trim() : '';
 
-  if (!fullName || fullName.length < 3) {
-    showToast('Validación', 'Por favor ingrese su nombre y apellido completos.', 'warning');
-    DOM.candidateFullName.focus();
+  if (!nombres || nombres.length < 2) {
+    showToast('Validación', 'Por favor ingrese sus nombres completos.', 'warning');
+    if (DOM.candidateNombres) DOM.candidateNombres.focus();
+    return;
+  }
+
+  if (!apellidos || apellidos.length < 2) {
+    showToast('Validación', 'Por favor ingrese sus apellidos completos.', 'warning');
+    if (DOM.candidateApellidos) DOM.candidateApellidos.focus();
     return;
   }
 
   if (!cedula || cedula.length < 6) {
     showToast('Validación', 'La cédula debe contener al menos 6 dígitos numéricos sin puntos ni espacios.', 'warning');
-    DOM.candidateCedula.focus();
+    if (DOM.candidateCedula) DOM.candidateCedula.focus();
+    return;
+  }
+
+  // Validación de Correo Electrónico
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    showToast('Validación', 'Por favor ingrese un correo electrónico válido.', 'warning');
+    if (DOM.candidateEmail) DOM.candidateEmail.focus();
+    return;
+  }
+
+  // Validación de Fecha de Nacimiento
+  if (!birthDate) {
+    showToast('Validación', 'Por favor seleccione su fecha de nacimiento.', 'warning');
+    if (DOM.candidateBirthDate) DOM.candidateBirthDate.focus();
     return;
   }
 
@@ -904,6 +934,16 @@ async function handleCandidateLogin(e) {
     DOM.acceptSupervisionCheck.focus();
     return;
   }
+
+  const fullName = `${nombres} ${apellidos}`;
+  const candidateInfo = {
+    nombres,
+    apellidos,
+    cedula,
+    correo: email,
+    fecha_nacimiento: birthDate
+  };
+  AppState.candidateMeta = candidateInfo;
 
   // 1. Verificar si ya fue bloqueado previamente en esta sesión de navegador
   const cachedBlockedCedula = sessionStorage.getItem('LP_BLOCKED_CEDULA');
@@ -950,13 +990,15 @@ async function handleCandidateLogin(e) {
       }
     }
 
-    // Caso 4: Candidato Nuevo -> Crear registro con estado EN_CURSO
+    // Caso 4: Candidato Nuevo -> Crear registro con estado EN_CURSO y metadatos completos
     const newRecord = {
       nombre: fullName,
       cedula: cedula,
       estado: 'EN_CURSO',
       motivo_bloqueo: null,
-      respuestas: {}
+      respuestas: {
+        _candidato: candidateInfo
+      }
     };
 
     const saved = await DatabaseService.insertCandidate(newRecord);
@@ -1096,7 +1138,11 @@ function renderAdminDashboard() {
       statusBadge = `<span class="badge badge-danger"><span class="badge-dot"></span>BLOQUEADO</span>`;
     }
 
-    const answersCount = item.respuestas ? Object.keys(item.respuestas).filter(k => item.respuestas[k]).length : 0;
+    const candidateMeta = (item.respuestas && item.respuestas._candidato) ? item.respuestas._candidato : {};
+    const email = candidateMeta.correo || '';
+    const birth = candidateMeta.fecha_nacimiento || '';
+
+    const answersCount = item.respuestas ? Object.keys(item.respuestas).filter(k => !k.startsWith('_') && item.respuestas[k]).length : 0;
     const isResetEligible = item.estado === 'BLOQUEADO' || item.estado === 'EN_CURSO';
 
     return `
@@ -1105,7 +1151,9 @@ function renderAdminDashboard() {
         <td>
           <div class="candidate-cell">
             <span class="candidate-cell-name">${escapeHtml(item.nombre)}</span>
-            <span class="candidate-cell-cedula">${answersCount} / ${TOTAL_QUESTIONS_COUNT} respuestas</span>
+            <span class="candidate-cell-cedula">C.C. <strong>${escapeHtml(item.cedula)}</strong></span>
+            ${email ? `<span class="candidate-cell-sub">✉️ ${escapeHtml(email)}</span>` : ''}
+            ${birth ? `<span class="candidate-cell-sub">🎂 F. Nac: ${escapeHtml(birth)}</span>` : ''}
           </div>
         </td>
         <td><strong>${escapeHtml(item.cedula)}</strong></td>
@@ -1159,8 +1207,18 @@ function openResponsesModal(cedula) {
   const candidate = AppState.adminData.find(c => c.cedula === cedula);
   if (!candidate) return;
 
+  const candidateMeta = (candidate.respuestas && candidate.respuestas._candidato) ? candidate.respuestas._candidato : {};
+  const email = candidateMeta.correo || 'No registrado';
+  const birthDate = candidateMeta.fecha_nacimiento || 'No registrada';
+
   DOM.modalCandidateNameTitle.textContent = candidate.nombre;
-  DOM.modalCandidateMetaInfo.textContent = `Cédula: ${candidate.cedula} | Estado: ${candidate.estado} | Fecha: ${formatDate(candidate.fecha)}`;
+  DOM.modalCandidateMetaInfo.innerHTML = `
+    <strong>C.C.:</strong> ${escapeHtml(candidate.cedula)} &nbsp;|&nbsp; 
+    <strong>Correo:</strong> ${escapeHtml(email)} &nbsp;|&nbsp; 
+    <strong>F. Nacimiento:</strong> ${escapeHtml(birthDate)} &nbsp;|&nbsp; 
+    <strong>Estado:</strong> ${escapeHtml(candidate.estado)} &nbsp;|&nbsp; 
+    <strong>Fecha:</strong> ${formatDate(candidate.fecha)}
+  `;
 
   const answers = candidate.respuestas || {};
 
@@ -1245,43 +1303,6 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
-}
-
-// ==============================================================================
-// 13. CONFIGURACIÓN MODAL DE CREDENCIALES
-// ==============================================================================
-function initConfigModal() {
-  if (DOM.btnOpenConfigModal) {
-    DOM.btnOpenConfigModal.addEventListener('click', () => {
-      DOM.cfgSupabaseUrl.value = localStorage.getItem('LP_SUPABASE_URL') || '';
-      DOM.cfgSupabaseKey.value = localStorage.getItem('LP_SUPABASE_KEY') || '';
-      DOM.configModal.classList.remove('hidden');
-    });
-  }
-
-  const closeConfig = () => DOM.configModal.classList.add('hidden');
-  if (DOM.btnCloseConfig) DOM.btnCloseConfig.addEventListener('click', closeConfig);
-  if (DOM.btnCancelConfig) DOM.btnCancelConfig.addEventListener('click', closeConfig);
-
-  if (DOM.btnSaveConfig) {
-    DOM.btnSaveConfig.addEventListener('click', () => {
-      const url = DOM.cfgSupabaseUrl.value.trim();
-      const key = DOM.cfgSupabaseKey.value.trim();
-
-      if (url && key) {
-        localStorage.setItem('LP_SUPABASE_URL', url);
-        localStorage.setItem('LP_SUPABASE_KEY', key);
-        SUPABASE_CONFIG.url = url;
-        SUPABASE_CONFIG.anonKey = key;
-        initSupabase();
-        showToast('Conectado', 'Credenciales de Supabase actualizadas y guardadas con éxito.', 'success');
-        closeConfig();
-        loadAdminData();
-      } else {
-        showToast('Atención', 'Por favor diligencie tanto la URL como la Anon Key.', 'warning');
-      }
-    });
-  }
 }
 
 // ==============================================================================
@@ -1419,7 +1440,6 @@ function initApp() {
     DOM.btnConfirmReset.addEventListener('click', executeCandidateReset);
   }
 
-  initConfigModal();
   initAdminLoginModal();
 
   // 3. Comprobar si accede directamente por URL (?admin=paola2026) o ya tenía sesión activa

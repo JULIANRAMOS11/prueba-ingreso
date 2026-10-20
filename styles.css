@@ -497,6 +497,19 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.45;
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
 .login-footer {
   margin-top: 1.5rem;
   border-top: 1px solid var(--slate-100);
@@ -1495,6 +1508,15 @@ h1, h2, h3, h4, h5, h6 {
 .candidate-cell-cedula {
   font-size: 0.75rem;
   color: var(--slate-500);
+}
+
+.candidate-cell-sub {
+  font-size: 0.725rem;
+  color: var(--slate-600);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
 }
 
 .reason-tag {
