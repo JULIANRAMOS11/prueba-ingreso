@@ -10,8 +10,8 @@
 // ==============================================================================
 // Reemplace estas constantes con las de su proyecto de Supabase, o utilice
 // el botón de configuración en el Panel de Administración para guardarlas en localStorage.
-const DEFAULT_SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const DEFAULT_SUPABASE_URL = 'https://uidrncxmggbwnoxcltsd.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_ZzONZA_eAa1O2Df5CVJh1g_YvADbdBT';
 
 const SUPABASE_CONFIG = {
   url: localStorage.getItem('LP_SUPABASE_URL') || DEFAULT_SUPABASE_URL,
