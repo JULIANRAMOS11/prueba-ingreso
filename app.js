@@ -273,6 +273,7 @@ const DOM = {
   btnDoneViewingResponses: document.getElementById('btnDoneViewingResponses'),
   btnExportResponses: document.getElementById('btnExportResponses'),
   liveGradingScore: document.getElementById('liveGradingScore'),
+  btnAutoGradeCandidate: document.getElementById('btnAutoGradeCandidate'),
   btnToggleAnswerKey: document.getElementById('btnToggleAnswerKey'),
   labelToggleAnswerKey: document.getElementById('labelToggleAnswerKey'),
   btnSaveGrading: document.getElementById('btnSaveGrading'),
@@ -1282,6 +1283,308 @@ function attachAdminTableActions() {
   });
 }
 
+// Motor de Evaluación Inteligente (Auto-Calificación con Solucionario Oficial)
+function evaluateQuestionWithAnswerKey(qKey, rawAnswer) {
+  if (!rawAnswer || typeof rawAnswer !== 'string') {
+    return { score: 0, reason: 'Sin respuesta registrada' };
+  }
+
+  const text = rawAnswer.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  if (text.length < 2) {
+    return { score: 0, reason: 'Respuesta vacía o muy breve' };
+  }
+
+  const numClean = text.replace(/[\.\,\$\s]/g, '');
+
+  switch (qKey) {
+    // 1.1 Hora ordinaria
+    case 'q1_1': {
+      if (numClean.includes('7500') || numClean.includes('7826')) return { score: 1.0, reason: 'Cálculo exacto del valor hora ordinaria' };
+      if (numClean.includes('240') || numClean.includes('230') || numClean.includes('1800000')) return { score: 0.5, reason: 'Base de horas o planteamiento correcto' };
+      return { score: 0, reason: 'No coincide con $7.500 o $7.826' };
+    }
+    // 1.2 10 HED
+    case 'q1_2': {
+      if (numClean.includes('93750') || numClean.includes('97826')) return { score: 1.0, reason: 'Cálculo exacto de 10 HED (+25%)' };
+      if (text.includes('25%') || text.includes('1.25') || numClean.includes('93') || numClean.includes('97')) return { score: 0.5, reason: 'Recargo del 25% o cálculo aproximado' };
+      return { score: 0, reason: 'Valor de horas extras diurnas no coincide' };
+    }
+    // 1.3 5 HEN
+    case 'q1_3': {
+      if (numClean.includes('65625') || numClean.includes('68478')) return { score: 1.0, reason: 'Cálculo exacto de 5 HEN (+75%)' };
+      if (text.includes('75%') || text.includes('1.75') || numClean.includes('65') || numClean.includes('68')) return { score: 0.5, reason: 'Recargo del 75% o cálculo aproximado' };
+      return { score: 0, reason: 'Valor de horas extras nocturnas no coincide' };
+    }
+    // 1.4 Total Devengado
+    case 'q1_4': {
+      if (numClean.includes('2121375') || numClean.includes('2128304') || numClean.includes('2121') || numClean.includes('2128')) return { score: 1.0, reason: 'Total devengado liquidado correctamente' };
+      if (numClean.includes('162000') || text.includes('auxilio') || text.includes('devengado')) return { score: 0.5, reason: 'Incluye auxilio de transporte o suma parcial' };
+      return { score: 0, reason: 'Total devengado incorrecto' };
+    }
+    // 1.5 IBC Seguridad Social
+    case 'q1_5': {
+      if (numClean.includes('1959375') || numClean.includes('1966304') || numClean.includes('1959') || numClean.includes('1966')) return { score: 1.0, reason: 'IBC liquidado sin auxilio de transporte' };
+      if (text.includes('sin auxilio') || text.includes('resta') || text.includes('no incluye')) return { score: 0.5, reason: 'Identifica que el auxilio no hace parte del IBC' };
+      return { score: 0, reason: 'IBC incorrecto' };
+    }
+    // 1.6 Deducciones
+    case 'q1_6': {
+      if (numClean.includes('156750') || numClean.includes('157304') || (numClean.includes('78375') && text.includes('salud') && text.includes('pension'))) return { score: 1.0, reason: 'Deducciones de 4% Salud y 4% Pensión exactas' };
+      if (text.includes('4%') || numClean.includes('78375') || numClean.includes('156')) return { score: 0.5, reason: 'Aplica el 4% o cálculo cercano' };
+      return { score: 0, reason: 'Deducciones incorrectas' };
+    }
+    // 1.7 Neto a Pagar
+    case 'q1_7': {
+      if (numClean.includes('1964625') || numClean.includes('1971000') || numClean.includes('1964') || numClean.includes('1971')) return { score: 1.0, reason: 'Neto a pagar exacto' };
+      if (text.includes('devengado') || text.includes('deducciones') || text.includes('neto')) return { score: 0.5, reason: 'Fórmula correcta pero cálculo aproximado' };
+      return { score: 0, reason: 'Neto a pagar incorrecto' };
+    }
+
+    // Sección 2: PILA
+    case 'q2_1': {
+      if (numClean.includes('1959375') || numClean.includes('1966304') || numClean.includes('1959') || numClean.includes('1966')) return { score: 1.0, reason: 'IBC de PILA exacto' };
+      if (text.includes('sin auxilio') || text.includes('no incluye')) return { score: 0.5, reason: 'Concepto de exclusión de auxilio de transporte' };
+      return { score: 0, reason: 'IBC de PILA incorrecto' };
+    }
+    case 'q2_2': {
+      const hasWorker = text.includes('4%') || numClean.includes('78375');
+      const hasExon = text.includes('exonerad') || text.includes('0%') || text.includes('114-1') || text.includes('114');
+      if (hasWorker && hasExon) return { score: 1.0, reason: '4% trabajador y empleador exonerado por Art. 114-1' };
+      if (hasWorker || hasExon) return { score: 0.5, reason: 'Menciona aporte de trabajador o exoneración patronal' };
+      return { score: 0, reason: 'No menciona la exoneración del Art. 114-1' };
+    }
+    case 'q2_3': {
+      const hasTotal = text.includes('16%') || numClean.includes('313500');
+      const hasParts = (text.includes('12%') || numClean.includes('235125')) && (text.includes('4%') || numClean.includes('78375'));
+      if (hasTotal || hasParts) return { score: 1.0, reason: 'Pensión 16% total (12% empleador + 4% trabajador)' };
+      if (text.includes('12%') || text.includes('16%') || text.includes('4%')) return { score: 0.5, reason: 'Porcentajes de pensión parciales' };
+      return { score: 0, reason: 'Aportes de pensión incorrectos' };
+    }
+    case 'q2_4': {
+      if (text.includes('0.522') || text.includes('0,522') || numClean.includes('10228') || numClean.includes('10200') || numClean.includes('10300')) return { score: 1.0, reason: 'Tarifa ARL Riesgo I 0.522% exacta a cargo empleador' };
+      if (text.includes('arl') || text.includes('riesgo 1') || text.includes('riesgo i') || text.includes('empleador')) return { score: 0.5, reason: 'Identifica que está a cargo del empleador' };
+      return { score: 0, reason: 'Tarifa o valor de ARL no coincide' };
+    }
+    case 'q2_5': {
+      const hasCcf = text.includes('caja') || text.includes('compensacion') || (text.includes('4%') && numClean.includes('78375'));
+      const hasExon = text.includes('exonerad') || text.includes('sena') || text.includes('icbf');
+      if (hasCcf && hasExon) return { score: 1.0, reason: 'Caja 4% y exoneración SENA / ICBF por Art. 114-1' };
+      if (hasCcf || hasExon) return { score: 0.5, reason: 'Identifica aportes de parafiscales parciales' };
+      return { score: 0, reason: 'No distingue aportes y exoneraciones parafiscales' };
+    }
+    case 'q2_6': {
+      if (numClean.includes('480478') || numClean.includes('480') || text.includes('24.522%') || text.includes('24.5%')) return { score: 1.0, reason: 'Total Planilla PILA exacto' };
+      if (text.includes('total') || text.includes('pila') || numClean.includes('48')) return { score: 0.5, reason: 'Cálculo de PILA aproximado' };
+      return { score: 0, reason: 'Total PILA no coincide' };
+    }
+
+    // Sección 3: Salario Integral
+    case 'q3_1': {
+      if (text.includes('30%') && (numClean.includes('5400000') || numClean.includes('5400') || numClean.includes('70%') || numClean.includes('12600000'))) return { score: 1.0, reason: 'Factor prestacional 30% ($5.400.000) exacto' };
+      if (text.includes('30%') || numClean.includes('5400000')) return { score: 0.5, reason: 'Reconoce el 30% prestacional' };
+      return { score: 0, reason: 'Factor prestacional incorrecto' };
+    }
+    case 'q3_2': {
+      if (text.includes('70%') && (numClean.includes('12600000') || numClean.includes('12600'))) return { score: 1.0, reason: 'IBC 70% ($12.600.000) exacto' };
+      if (text.includes('70%') || numClean.includes('12600000')) return { score: 0.5, reason: 'Reconoce la base del 70%' };
+      return { score: 0, reason: 'IBC de salario integral incorrecto' };
+    }
+    case 'q3_3': {
+      let matches = 0;
+      if (text.includes('salud') || text.includes('12.5')) matches++;
+      if (text.includes('pension') || text.includes('16')) matches++;
+      if (text.includes('fsp') || text.includes('solidaridad')) matches++;
+      if (text.includes('arl') || text.includes('parafiscales')) matches++;
+      if (matches >= 3) return { score: 1.0, reason: 'Liquidación completa de seguridad social sobre el 70%' };
+      if (matches >= 1) return { score: 0.5, reason: 'Identifica aportes de seguridad social de salario integral' };
+      return { score: 0, reason: 'Aportes de salario integral incorrectos' };
+    }
+    case 'q3_4': {
+      const hasPrimaCesantias = text.includes('no') || text.includes('incluid') || text.includes('prestacional');
+      const hasVacaciones = text.includes('vacaciones') || text.includes('recargo') || text.includes('extras');
+      if (hasPrimaCesantias && hasVacaciones) return { score: 1.0, reason: 'Explica que prima/cesantías están incluidas y vacaciones sí' };
+      if (hasPrimaCesantias || hasVacaciones) return { score: 0.5, reason: 'Explica parcialmente el tratamiento prestacional' };
+      return { score: 0, reason: 'Tratamiento de prestaciones incorrecto' };
+    }
+    case 'q3_5': {
+      if (text.includes('25') && (text.includes('smmlv') || text.includes('salarios') || text.includes('minimos') || text.includes('tope'))) return { score: 1.0, reason: 'Tope legal de 25 SMMLV identificado' };
+      if (text.includes('25') || text.includes('tope') || text.includes('smmlv')) return { score: 0.5, reason: 'Menciona el concepto de tope o 25 salarios' };
+      return { score: 0, reason: 'No menciona los 25 SMMLV de tope' };
+    }
+    case 'q3_6': {
+      if (text.includes('25') || text.includes('tope') || numClean.includes('32500000') || numClean.includes('35587500') || numClean.includes('28000000')) return { score: 1.0, reason: 'Aplica el tope de 25 SMMLV sobre el salario de 40M' };
+      if (text.includes('limite') || text.includes('tope') || text.includes('maximo')) return { score: 0.5, reason: 'Identifica que opera un límite' };
+      return { score: 0, reason: 'No aplica el tope de 25 SMMLV' };
+    }
+    case 'q3_7': {
+      if (text.includes('tope') || text.includes('25') || text.includes('salud') || text.includes('pension') || text.includes('fsp')) return { score: 1.0, reason: 'Calcula aportes aplicando el límite legal' };
+      return { score: 0.5, reason: 'Menciona aportes sobre el salario tope' };
+    }
+
+    // Sección 4: Salariales y No Salariales
+    case 'q4_1': {
+      if (numClean.includes('3000000') || numClean.includes('3000') || text.includes('sueldo') || text.includes('basico')) return { score: 1.0, reason: 'Salario básico de $3.000.000 identificado' };
+      return { score: 0.5, reason: 'Concepto salarial identificado' };
+    }
+    case 'q4_2': {
+      if (numClean.includes('3200000') || (text.includes('bonificacion') && text.includes('rodamiento') && text.includes('alimentacion'))) return { score: 1.0, reason: 'Identifica los 3 conceptos no salariales ($3.200.000)' };
+      if (text.includes('bonificacion') || text.includes('rodamiento') || text.includes('alimentacion')) return { score: 0.5, reason: 'Identifica parte de los pagos no salariales' };
+      return { score: 0, reason: 'Pagos no salariales no identificados' };
+    }
+    case 'q4_3': {
+      const has40 = text.includes('40%') || text.includes('40 por');
+      const hasValues = numClean.includes('2480000') || numClean.includes('720000') || numClean.includes('3720000') || numClean.includes('720') || numClean.includes('3720');
+      if (has40 && hasValues) return { score: 1.0, reason: 'Aplica la regla del 40% (Ley 1393) con exceso al IBC' };
+      if (has40 || hasValues || text.includes('1393')) return { score: 0.5, reason: 'Aplica la regla del 40% parcialmente' };
+      return { score: 0, reason: 'No aplica la regla del 40% de la Ley 1393' };
+    }
+    case 'q4_4': {
+      let matches = 0;
+      if (text.includes('128') || text.includes('cst')) matches++;
+      if (text.includes('liberalidad') || text.includes('ocasional')) matches++;
+      if (text.includes('no retribu') || text.includes('directa')) matches++;
+      if (text.includes('pacto') || text.includes('acuerdo') || text.includes('escrito')) matches++;
+      if (matches >= 2) return { score: 1.0, reason: 'Condiciones del Art. 128 CST explicadas claramente' };
+      if (matches >= 1) return { score: 0.5, reason: 'Menciona algunas condiciones de desalarización' };
+      return { score: 0, reason: 'No explica las condiciones legales del Art. 128 CST' };
+    }
+
+    // Sección 5: Retención en la fuente
+    case 'q5_1': {
+      if ((text.includes('anticipo') || text.includes('mecanismo') || text.includes('recaudo')) && (text.includes('renta') || text.includes('impuesto') || text.includes('salarios'))) return { score: 1.0, reason: 'Definición correcta de retención en la fuente por salarios' };
+      if (text.includes('impuesto') || text.includes('retencion') || text.includes('descuento')) return { score: 0.5, reason: 'Concepto general de retención' };
+      return { score: 0, reason: 'Definición imprecisa' };
+    }
+    case 'q5_2': {
+      let matches = 0;
+      if (text.includes('salud') || text.includes('pension')) matches++;
+      if (text.includes('fsp') || text.includes('solidaridad')) matches++;
+      if (text.includes('incrngo') || text.includes('no constitutivo')) matches++;
+      if (matches >= 2) return { score: 1.0, reason: 'Identifica aportes obligatorios como ingresos no constitutivos' };
+      if (matches >= 1) return { score: 0.5, reason: 'Menciona deducciones básicas de seguridad social' };
+      return { score: 0, reason: 'Conceptos de depuración incorrectos' };
+    }
+    case 'q5_3': {
+      let matches = 0;
+      if (text.includes('vivienda') || text.includes('hipotecario')) matches++;
+      if (text.includes('dependiente') || text.includes('hijos')) matches++;
+      if (text.includes('salud') || text.includes('prepagada')) matches++;
+      if (text.includes('afc') || text.includes('fpv') || text.includes('voluntario')) matches++;
+      if (text.includes('25%') || text.includes('exenta')) matches++;
+      if (matches >= 2) return { score: 1.0, reason: 'Menciona dos o más beneficios tributarios y deducciones' };
+      if (matches >= 1) return { score: 0.5, reason: 'Menciona un beneficio tributario' };
+      return { score: 0, reason: 'Beneficios tributarios no identificados' };
+    }
+    case 'q5_4': {
+      if (text.includes('40%') && (text.includes('1340') || text.includes('uvt') || text.includes('ley 2277'))) return { score: 1.0, reason: 'Límite del 40% y 1.340 UVT anuales exacto' };
+      if (text.includes('40%') || text.includes('1340') || text.includes('uvt')) return { score: 0.5, reason: 'Menciona el límite del 40% o las UVT' };
+      return { score: 0, reason: 'Límite máximo no coincide' };
+    }
+
+    // Sección 6: Cumplimiento UGPP
+    case 'q6_1': {
+      let matches = 0;
+      if (text.includes('desalarizacion') || text.includes('evasion') || text.includes('elusion')) matches++;
+      if (text.includes('40%') || text.includes('1393')) matches++;
+      if (text.includes('sancion') || text.includes('omision') || text.includes('inexactitud')) matches++;
+      if (matches >= 2) return { score: 1.0, reason: 'Identifica riesgo de desalarización y violación del límite del 40%' };
+      if (matches >= 1) return { score: 0.5, reason: 'Identifica riesgo sancionatorio general' };
+      return { score: 0, reason: 'Riesgo UGPP no identificado' };
+    }
+    case 'q6_2': {
+      if (text.includes('primacia') || text.includes('realidad') || text.includes('habitual') || text.includes('frecuencia') || text.includes('retribu')) return { score: 1.0, reason: 'Criterio de realidad sobre las formas y habitualidad explicado' };
+      if (text.includes('criterio') || text.includes('pago') || text.includes('laboral')) return { score: 0.5, reason: 'Concepto general de fiscalización' };
+      return { score: 0, reason: 'No explica los criterios técnicos de la UGPP' };
+    }
+    case 'q6_3': {
+      if (text.includes('sancion') || text.includes('interes') || text.includes('reliquidacion') || text.includes('inexactitud') || text.includes('cobro')) return { score: 1.0, reason: 'Sanciones, intereses moratorios y reliquidación explicadas' };
+      if (text.includes('multa') || text.includes('pagar')) return { score: 0.5, reason: 'Menciona consecuencias económicas generales' };
+      return { score: 0, reason: 'Consecuencias de la UGPP no identificadas' };
+    }
+    case 'q6_4': {
+      if (text.includes('40%') || text.includes('1393') || text.includes('otrosi') || text.includes('pacto') || text.includes('auditoria') || text.includes('soporte')) return { score: 1.0, reason: 'Recomendaciones preventivas documentales y de límite del 40%' };
+      if (text.includes('revisar') || text.includes('cumplir') || text.includes('ajustar')) return { score: 0.5, reason: 'Recomendaciones generales' };
+      return { score: 0, reason: 'Recomendaciones no fundamentadas' };
+    }
+
+    // Sección 7: Legislación Laboral
+    case 'q7_1': {
+      if ((text.includes('ingreso base') || text.includes('monto') || text.includes('base')) && (text.includes('cotizacion') || text.includes('seguridad social') || text.includes('salud') || text.includes('pension'))) return { score: 1.0, reason: 'Definición de IBC correcta' };
+      if (text.includes('base') || text.includes('salario')) return { score: 0.5, reason: 'Definición básica de IBC' };
+      return { score: 0, reason: 'Definición incorrecta de IBC' };
+    }
+    case 'q7_2': {
+      if (text.includes('4%') && (text.includes('salud') || text.includes('pension') || text.includes('8%'))) return { score: 1.0, reason: 'Aportes 4% Salud y 4% Pensión (8% total) exactos' };
+      if (text.includes('4%') || text.includes('8%')) return { score: 0.5, reason: 'Porcentajes aproximados' };
+      return { score: 0, reason: 'Porcentajes de cotización del trabajador incorrectos' };
+    }
+    case 'q7_3': {
+      if (text.includes('35%') || text.includes('35 por') || text.includes('0.35')) return { score: 1.0, reason: 'Recargo nocturno del 35% exacto' };
+      return { score: 0, reason: 'Porcentaje de recargo nocturno incorrecto' };
+    }
+    case 'q7_4': {
+      if (text.includes('75%') || text.includes('75 por') || text.includes('0.75')) return { score: 1.0, reason: 'Recargo dominical o festivo del 75% exacto' };
+      return { score: 0, reason: 'Porcentaje de recargo dominical incorrecto' };
+    }
+    case 'q7_5': {
+      if (text.includes('eps') || text.includes('entidad promotora')) return { score: 1.0, reason: 'EPS paga incapacidades del día 3 al 180' };
+      if (text.includes('empleador') && (text.includes('primeros') || text.includes('2 dias'))) return { score: 0.5, reason: 'Menciona que los 2 primeros días son del empleador' };
+      return { score: 0, reason: 'Entidad responsable incorrecta' };
+    }
+    case 'q7_6': {
+      if (text.includes('2 smmlv') || text.includes('dos salarios') || text.includes('2 salarios') || text.includes('hasta 2')) return { score: 1.0, reason: 'Trabajadores hasta 2 SMMLV exacto' };
+      if (text.includes('salario') || text.includes('minimo') || text.includes('transporte')) return { score: 0.5, reason: 'Menciona salario mínimo pero omite el tope de 2 SMMLV' };
+      return { score: 0, reason: 'Requisito de auxilio de transporte incorrecto' };
+    }
+
+    default:
+      return { score: 0.5, reason: 'Evaluación general' };
+  }
+}
+
+function autoGradeCurrentCandidate() {
+  const cedula = AppState.currentGradingCedula;
+  if (!cedula) return;
+
+  const candidate = AppState.adminData.find(c => c.cedula === cedula);
+  if (!candidate) return;
+
+  const answers = candidate.respuestas || {};
+  const newGrades = {};
+
+  Object.keys(EXAM_QUESTIONS_MAP).forEach(qKey => {
+    const rawAnswer = answers[qKey] || '';
+    const result = evaluateQuestionWithAnswerKey(qKey, rawAnswer);
+    newGrades[qKey] = result.score;
+
+    const row = DOM.modalResponsesContent.querySelector(`.response-item-row[data-qkey="${qKey}"]`);
+    if (row) {
+      const controls = row.querySelector('.question-grade-controls');
+      if (controls) {
+        controls.querySelectorAll('.btn-grade-opt').forEach(btn => {
+          btn.classList.remove('active');
+          const btnScore = parseFloat(btn.getAttribute('data-score'));
+          if (btnScore === result.score) {
+            btn.classList.add('active');
+          }
+        });
+
+        let tag = controls.querySelector('.auto-grade-tag');
+        if (!tag) {
+          tag = document.createElement('span');
+          tag.className = 'auto-grade-tag';
+          controls.appendChild(tag);
+        }
+        tag.innerHTML = `🤖 Sugerido: ${result.score} pts · <em>${escapeHtml(result.reason)}</em>`;
+      }
+    }
+  });
+
+  DOM.responsesModal._currentGrades = newGrades;
+  updateModalGradingSummary(newGrades);
+  showToast('Auto-Calificación Lista', 'Respuestas evaluadas con el solucionario. Puedes revisar y modificar cualquier pregunta.', 'info');
+}
+
 function openResponsesModal(cedula) {
   const candidate = AppState.adminData.find(c => c.cedula === cedula);
   if (!candidate) return;
@@ -1302,7 +1605,8 @@ function openResponsesModal(cedula) {
   `;
 
   const answers = candidate.respuestas || {};
-  const savedGrades = (answers._calificacion && answers._calificacion.items) ? { ...answers._calificacion.items } : {};
+  const hasSavedGrades = answers._calificacion && answers._calificacion.items && Object.keys(answers._calificacion.items).length > 0;
+  const savedGrades = hasSavedGrades ? { ...answers._calificacion.items } : {};
 
   // Sincronizar botón de solucionario
   if (DOM.labelToggleAnswerKey) {
@@ -1382,9 +1686,14 @@ function openResponsesModal(cedula) {
     });
   });
 
-  // Guardar referencia temporal de notas en el modal
   DOM.responsesModal._currentGrades = savedGrades;
-  updateModalGradingSummary(savedGrades);
+
+  if (hasSavedGrades) {
+    updateModalGradingSummary(savedGrades);
+  } else {
+    // Si aún no ha sido calificado, ejecutar auto-calificación de inmediato para comodidad de Paola
+    autoGradeCurrentCandidate();
+  }
 
   DOM.responsesModal.classList.remove('hidden');
 }
@@ -1629,6 +1938,9 @@ function initApp() {
   }
   if (DOM.btnExportResponses) {
     DOM.btnExportResponses.addEventListener('click', () => window.print());
+  }
+  if (DOM.btnAutoGradeCandidate) {
+    DOM.btnAutoGradeCandidate.addEventListener('click', autoGradeCurrentCandidate);
   }
   if (DOM.btnToggleAnswerKey) {
     DOM.btnToggleAnswerKey.addEventListener('click', () => {

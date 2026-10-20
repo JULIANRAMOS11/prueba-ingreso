@@ -16,6 +16,16 @@
 <body>
 
   <!-- ========================================================================= -->
+  <!-- VIDEO CORPORATIVO A PANTALLA COMPLETA DE FONDO (DIFUMINADO AMBIENTAL)   -->
+  <!-- ========================================================================= -->
+  <div class="fullscreen-video-bg" aria-hidden="true">
+    <video id="bgAmbientVideo" class="fullscreen-video-media" autoplay loop muted playsinline preload="auto">
+      <source src="assets/video.mp4" type="video/mp4">
+    </video>
+    <div class="fullscreen-video-overlay"></div>
+  </div>
+
+  <!-- ========================================================================= -->
   <!-- NOTIFICACIÓN FLOTANTE (TOAST) -->
   <!-- ========================================================================= -->
   <div id="toastNotification" class="toast-notification hidden" role="alert" aria-live="polite">
@@ -77,23 +87,9 @@
         <div class="brand-logo-container">
           <img src="assets/logo-original.png" alt="LOZADA & PARTNERS SAS" class="main-brand-logo">
         </div>
-        <h1 class="brand-title">LOZADA & PARTNERS SAS</h1>
-        <p class="brand-subtitle">Departamento de Gestión del Talento Humano</p>
       </div>
 
       <div class="card login-card shadow-xl">
-        <!-- Video Corporativo Institucional en Registro -->
-        <div class="corporate-video-showcase login-video-box">
-          <video id="loginCorporateVideo" class="corporate-video-player" src="assets/video.mp4" autoplay loop muted playsinline preload="auto"></video>
-          <div class="video-overlay-bar">
-            <span class="video-badge-pill">LOZADA &amp; PARTNERS SAS • Selección de Talento</span>
-            <button type="button" class="btn-video-sound" data-video="loginCorporateVideo" title="Activar o silenciar audio del video">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-              <span class="sound-label">Activar Audio</span>
-            </button>
-          </div>
-        </div>
-
         <div class="card-header text-center">
           <span class="badge-role">Convocatoria Especializada</span>
           <h2>Prueba Técnica – Especialista de Nómina</h2>
@@ -971,26 +967,14 @@
 
     <div class="admin-main-container">
       
-      <!-- Banner Institucional con Video Corporativo en Dashboard de Paola -->
+      <!-- Banner Institucional en Dashboard de Paola -->
       <div class="admin-hero-banner card">
         <div class="admin-hero-info">
           <span class="badge-role">Portal de Selección y Evaluación Técnica</span>
           <h2>Bienvenida, Paola — Gestión de Talento Humano</h2>
           <p class="text-muted text-sm">
-            Supervisa en tiempo real las pruebas técnicas de Especialista de Nómina, consulta el solucionario oficial para calificar cada respuesta y administra los registros de candidatos de <strong>LOZADA &amp; PARTNERS SAS</strong>.
+            Supervisa en tiempo real las pruebas técnicas de Especialista de Nómina, califica automáticamente con el solucionario inteligente o revisa respuesta por respuesta con el solucionario oficial de <strong>LOZADA &amp; PARTNERS SAS</strong>.
           </p>
-        </div>
-        <div class="admin-hero-video-wrapper">
-          <div class="corporate-video-showcase admin-video-box">
-            <video id="adminCorporateVideo" class="corporate-video-player" src="assets/video.mp4" autoplay loop muted playsinline preload="auto"></video>
-            <div class="video-overlay-bar compact">
-              <span class="video-badge-pill">Video Institucional</span>
-              <button type="button" class="btn-video-sound" data-video="adminCorporateVideo" title="Activar o silenciar audio del video">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                <span class="sound-label">Audio</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1109,6 +1093,10 @@
           <span class="grading-score-badge" id="liveGradingScore">Sin calificar (0 / 38)</span>
         </div>
         <div class="grading-toolbar-actions">
+          <button type="button" class="btn btn-ai btn-sm" id="btnAutoGradeCandidate" title="Comparar y calificar automáticamente todas las respuestas con el solucionario oficial">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            <span>⚡ Auto-Calificar con Solucionario</span>
+          </button>
           <button type="button" class="btn btn-secondary btn-sm" id="btnToggleAnswerKey">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
             <span id="labelToggleAnswerKey">Mostrar Solucionario Guía</span>

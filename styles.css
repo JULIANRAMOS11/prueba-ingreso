@@ -429,41 +429,48 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .brand-header {
-  margin-bottom: 2rem;
+  margin-bottom: 2.25rem;
 }
 
 .brand-logo-container {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .main-brand-logo {
-  max-height: 80px;
-  max-width: 280px;
-  width: auto;
+  max-height: 145px;
+  max-width: 440px;
+  width: 90%;
   height: auto;
   object-fit: contain;
   margin: 0 auto;
   display: block;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.05));
+  filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.4));
+  transition: transform 0.3s ease;
+}
+
+.main-brand-logo:hover {
+  transform: scale(1.02);
 }
 
 .brand-title {
-  font-size: 1.5rem;
-  color: var(--primary-900);
-  letter-spacing: -0.02em;
+  display: none;
 }
 
 .brand-subtitle {
-  font-size: 0.875rem;
-  color: var(--slate-500);
-  font-weight: 500;
-  margin-top: 0.2rem;
+  display: none;
 }
 
 .login-card {
-  background-color: var(--white);
-  border: 1px solid var(--slate-200);
-  padding: 2.25rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.4);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem;
 }
 
 .security-warning-box {
@@ -1722,92 +1729,95 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==============================================================================
-   VIDEO CORPORATIVO (LOGIN DE REGISTRO Y DASHBOARD DE PAOLA)
+   VIDEO A PANTALLA COMPLETA DE FONDO (DIFUMINADO AMBIENTAL CORPORATIVO)
    ============================================================================== */
-.corporate-video-showcase {
-  position: relative;
-  border-radius: var(--radius-lg);
+.fullscreen-video-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
   overflow: hidden;
-  background-color: #0f172a;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--slate-200);
+  background-color: #070d1e;
 }
 
-.login-video-box {
-  margin-bottom: 1.5rem;
-}
-
-.corporate-video-player {
-  width: 100%;
-  height: auto;
-  max-height: 230px;
-  object-fit: cover;
-  display: block;
-}
-
-.admin-video-box .corporate-video-player {
-  max-height: 175px;
-}
-
-.video-overlay-bar {
+.fullscreen-video-media {
   position: absolute;
-  bottom: 0;
+  top: 50%;
+  left: 50%;
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  transform: translate(-50%, -50%) scale(1.18);
+  object-fit: cover;
+  filter: blur(18px) brightness(0.62) saturate(1.2);
+  will-change: transform, filter;
+}
+
+.fullscreen-video-overlay {
+  position: absolute;
+  top: 0;
   left: 0;
   right: 0;
-  padding: 0.55rem 0.85rem;
-  background: linear-gradient(to top, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  bottom: 0;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.45) 0%, rgba(8, 15, 30, 0.8) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-.video-badge-pill {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #ffffff;
-  background: rgba(30, 58, 138, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 0.2rem 0.65rem;
-  border-radius: var(--radius-full);
-  letter-spacing: 0.03em;
-}
-
-.btn-video-sound {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--primary-900);
-  border: none;
-  padding: 0.28rem 0.7rem;
-  border-radius: var(--radius-full);
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-video-sound:hover {
-  background: #ffffff;
-  transform: scale(1.03);
+/* Elevación de vistas para flotar sobre el fondo ambiental */
+.app-view {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-hero-banner {
-  display: grid;
-  grid-template-columns: 1.35fr 1fr;
-  align-items: center;
-  gap: 1.75rem;
-  padding: 1.5rem 1.75rem;
+  display: block;
+  padding: 1.5rem 2rem;
   margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid var(--slate-200);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .admin-hero-info h2 {
   font-size: 1.35rem;
   color: var(--primary-900);
   margin: 0.35rem 0 0.5rem;
+}
+
+.btn-ai {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.35);
+  font-weight: 600;
+}
+
+.btn-ai:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.45);
+  transform: translateY(-1px);
+}
+
+.auto-grade-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  background-color: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+  margin-left: 0.5rem;
 }
 
 /* ==============================================================================
