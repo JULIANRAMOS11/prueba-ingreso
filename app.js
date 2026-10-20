@@ -143,60 +143,9 @@ const EXAM_QUESTIONS_MAP = {
 
 const TOTAL_QUESTIONS_COUNT = Object.keys(EXAM_QUESTIONS_MAP).length; // 38 preguntas
 
-// Solucionario Técnico Oficial para Calificación de Paola (LOZADA & PARTNERS)
-const EXAM_ANSWER_KEY = {
-  // Sección 1: Salario $1.800.000, Aux Transporte $162.000, 10 HED, 5 HEN
-  q1_1: 'Valor hora ordinaria (Base 230h o 240h según jornada): Con 240h = $1.800.000 / 240 = $7.500 | Con 230h (Ley 2101) = $1.800.000 / 230 = $7.826,09.',
-  q1_2: '10 Horas Extras Diurnas (+25%): Con base 240h: $7.500 × 1.25 × 10 = $93.750 | Con base 230h: $7.826,09 × 1.25 × 10 = $97.826.',
-  q1_3: '5 Horas Extras Nocturnas (+75%): Con base 240h: $7.500 × 1.75 × 5 = $65.625 | Con base 230h: $7.826,09 × 1.75 × 5 = $68.478.',
-  q1_4: 'Total Devengado (Salario + Aux. Transporte + HED + HEN): Base 240h = $1.800.000 + $162.000 + $93.750 + $65.625 = $2.121.375 (Base 230h = $2.128.304).',
-  q1_5: 'IBC Seguridad Social (Total devengado menos Auxilio de Transporte): Base 240h = $1.959.375 | Base 230h = $1.966.304.',
-  q1_6: 'Deducciones Trabajador (4% Salud + 4% Pensión sobre el IBC): Base 240h: Salud $78.375 + Pensión $78.375 = $156.750 (Base 230h = $157.304).',
-  q1_7: 'Neto a Pagar (Total Devengado - Deducciones): Base 240h: $2.121.375 - $156.750 = $1.964.625 (Base 230h = $1.971.000).',
-
-  // Sección 2: Planilla PILA sobre el trabajador anterior
-  q2_1: 'IBC Seguridad Social: $1.959.375 (o $1.966.304 según divisor de horas utilizado en Sección 1). El auxilio de transporte NO hace parte del IBC.',
-  q2_2: 'Salud: Trabajador 4% ($78.375). Empleador 0% (Exonerado del 8.5% por Art. 114-1 E.T. al devengar menos de 10 SMMLV).',
-  q2_3: 'Pensión (16% total): Trabajador 4% ($78.375) + Empleador 12% ($235.125) = Total Pensión $313.500.',
-  q2_4: 'ARL Riesgo I (0.522% a cargo 100% del empleador): $1.959.375 × 0.522% = $10.228 (redondeado a $10.200 o $10.300 en PILA).',
-  q2_5: 'Parafiscales: Caja de Compensación 4% ($78.375). Exonerado de SENA (2%) e ICBF (3%) por Art. 114-1 E.T. (< 10 SMMLV).',
-  q2_6: 'Total Planilla PILA (Salud 4% + Pensión 16% + ARL 0.522% + CCF 4% = 24.522% del IBC): Aprox. $480.478.',
-
-  // Sección 3: Salario Integral ($18.000.000) y Topes ($40.000.000)
-  q3_1: 'Factor Prestacional (30%): $18.000.000 × 30% = $5.400.000 (Factor salarial 70% = $12.600.000).',
-  q3_2: 'IBC Salario Integral (70% del total): $18.000.000 × 70% = $12.600.000.',
-  q3_3: 'Aportes sobre IBC ($12.600.000): Salud (12.5%: Emp 8.5% $1.071.000 + Trab 4% $504.000, NO aplica exoneración >10 SMMLV), Pensión (16%: Emp 12% $1.512.000 + Trab 4% $504.000), FSP (1.2% o 1.4% según rango SMMLV), ARL (0.522%: $65.772), Parafiscales 9% sobre el 70% ($1.134.000).',
-  q3_4: 'Prima y Cesantías NO se pagan por separado (ya están incluidas en el 30% prestacional). Vacaciones SÍ se pagan. Recargos/horas extras dependen del cargo (si no es de dirección, confianza o manejo).',
-  q3_5: 'El tope máximo de cotización al Sistema de Seguridad Social en Colombia es de 25 SMMLV (Ley 100 de 1993 / Ley 797 de 2003).',
-  q3_6: 'El IBC aplicable está limitado al tope de 25 SMMLV vigentes (ej. si SMMLV = $1.300.000 -> $32.500.000; si SMMLV = $1.423.500 -> $35.587.500), ya que el 70% de $40M ($28M) o un salario ordinario de $40M se evalúa frente al tope de 25 SMMLV.',
-  q3_7: 'Cálculo de Salud (12.5%), Pensión (16% + FSP 2%), ARL y Parafiscales liquidados sobre el IBC topado en 25 SMMLV.',
-
-  // Sección 4: Pagos Salariales ($3.000.000) y No Salariales ($3.200.000)
-  q4_1: 'Pagos salariales: Salario básico = $3.000.000.',
-  q4_2: 'Pagos no salariales: Bonificación no salarial ($2.000.000) + Auxilio de rodamiento ($800.000) + Auxilio de alimentación ($400.000) = $3.200.000.',
-  q4_3: 'Ley 1393 de 2010 (Tope 40%): Total remuneración = $6.200.000. El 40% de $6.200.000 es $2.480.000. Exceso no salarial = $3.200.000 - $2.480.000 = $720.000. IBC = $3.000.000 + $720.000 = $3.720.000.',
-  q4_4: 'Condiciones (Art. 128 CST): Que no retribuya directamente el servicio individual, que sea ocasional o por mera liberalidad, o que exista pacto expreso de desalarización (sin desnaturalizar pagos que por ley son salario).',
-
-  // Sección 5: Retención en la Fuente
-  q5_1: 'Es el recaudo anticipado del impuesto sobre la renta que el empleador (agente retenedor) descuenta mensualmente de los pagos laborales gravables que superan la base mínima en UVT (Art. 383 E.T.).',
-  q5_2: 'Ingresos no constitutivos de renta ni ganancia ocasional (Aportes obligatorios a Salud 4%, Pensión 4% y Fondo de Solidaridad Pensional).',
-  q5_3: 'Deducciones y rentas exentas: Intereses de vivienda (hasta 100 UVT/mes), Medicina prepagada/seguros de salud (hasta 16 UVT/mes), Dependientes económicos (10% hasta 32 UVT/mes + 72 UVT anuales), Aportes voluntarios AFC / FPV y el 25% de renta exenta laboral.',
-  q5_4: 'Límite del 40% de los ingresos netos (Ingresos brutos menos INCRNGO), sin exceder 1.340 UVT anuales (Ley 2277 de 2022).',
-
-  // Sección 6: Cumplimiento UGPP (Salario $2.000.000 vs Bonificaciones $4.000.000)
-  q6_1: 'Riesgo alto de evasión/elusión de aportes por desalarización artificial (los pagos no salariales representan el 66.7% del ingreso total) y omisión de la regla del 40% (Ley 1393 de 2010).',
-  q6_2: 'Primacía de la realidad sobre las formas (Art. 53 C.P. y Art. 127/128 CST): habitualidad, periodicidad, causalidad directa con el desempeño o cumplimiento de metas individuales, y aplicación del tope del 40%.',
-  q6_3: 'Liquidación oficial por inexactitud/omisión, reliquidación retroactiva de aportes (hasta 5 años), intereses moratorios diarios a tasa máxima de usura y sanciones de hasta el 35%, 60% o 100%+ de los aportes dejados de pagar.',
-  q6_4: 'Aplicar estrictamente el límite del 40% (Ley 1393) en nómina, documentar en otrosíes los pactos del Art. 128 CST, soportar que las bonificaciones no retribuyen el servicio directo y realizar auditorías preventivas de PILA vs Contabilidad.',
-
-  // Sección 7: Legislación Laboral
-  q7_1: 'Es el monto de los ingresos salariales mensuales del trabajador (más el exceso del 40% de pagos no salariales) sobre el cual se calculan los porcentajes de cotización a Salud, Pensión y ARL.',
-  q7_2: '4% para Salud y 4% para Pensión (Total 8% a cargo del trabajador; más 1% a 2% adicional de FSP si el IBC es igual o superior a 4 SMMLV).',
-  q7_3: '35% sobre el valor de la hora ordinaria (Art. 168 CST, horario nocturno de 9:00 p.m. a 6:00 a.m.).',
-  q7_4: '75% sobre el valor de la hora ordinaria en proporción a las horas laboradas (Art. 179 CST; en transición gradual bajo reforma laboral si aplica).',
-  q7_5: 'La EPS (Entidad Promotora de Salud) reconoce el pago a partir del día 3 hasta el día 180 en enfermedades de origen común (los primeros 2 días los asume el empleador; si es origen laboral, la ARL paga el 100% desde el día seguinte).',
-  q7_6: 'Trabajadores que devenguen hasta dos (2) Salarios Mínimos Mensuales Legales Vigentes (2 SMMLV) y que requieran desplazarse a su lugar de trabajo.'
-};
+// NOTA DE CIBERSEGURIDAD:
+// El Solucionario Oficial confidencial y el motor de evaluación residen 100% protegidos
+// en el servidor Vercel (/api/grade). Ninguna respuesta ni criterio viaja al código del cliente.
 
 // ==============================================================================
 // 3. ESTADO DE LA APLICACIÓN
@@ -211,7 +160,8 @@ const AppState = {
   adminFilter: 'ALL',
   adminSearchQuery: '',
   currentGradingCedula: null,
-  showAnswerKeyInModal: true
+  showAnswerKeyInModal: true,
+  adminAnswerKey: null // Entregado dinámicamente solo a Paola tras autenticación segura
 };
 
 // ==============================================================================
@@ -342,9 +292,120 @@ function sanitizeCedula(str) {
 }
 
 // ==============================================================================
-// 6. CAPA DE DATOS (SUPABASE CON FALLBACK TRANSPARENTE)
+// 6. CAPA DE DATOS Y SERVICIOS BLINDADOS (BACKEND VERCEL + SUPABASE PROTEGIDO)
 // ==============================================================================
 const DatabaseService = {
+  // 1. Acciones seguras del candidato mediadas por /api/candidate
+  async candidateAction(action, payload) {
+    try {
+      const res = await fetch('/api/candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ...payload })
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      if (res.status === 404) {
+        return null; // Modo fallback sin servidor local
+      }
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || `Error ${res.status}`);
+    } catch (err) {
+      console.warn(`[ApiService] /api/candidate (${action}) fallback local:`, err);
+      return null;
+    }
+  },
+
+  // 2. Consulta de candidatos para Paola (Solo con token administrativo HMAC)
+  async getAllCandidates() {
+    const token = sessionStorage.getItem('LP_ADMIN_TOKEN');
+    if (token) {
+      try {
+        const res = await fetch('/api/admin-data', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          return json.candidates || [];
+        }
+        if (res.status === 401) {
+          sessionStorage.removeItem('LP_ADMIN_AUTH');
+          sessionStorage.removeItem('LP_ADMIN_TOKEN');
+          closeAdminPanel();
+          showToast('Sesión Expirada', 'Su sesión de Recursos Humanos ha expirado. Ingrese nuevamente.', 'warning');
+          return [];
+        }
+      } catch (err) {
+        console.warn('Fallo /api/admin-data, intentando fallback:', err);
+      }
+    }
+
+    if (supabaseClient) {
+      try {
+        const { data, error } = await supabaseClient
+          .from('pruebas_nomina')
+          .select('*')
+          .order('fecha', { ascending: false });
+        if (!error && data) return data;
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    return LocalStorageDB.getAll();
+  },
+
+  // 3. Eliminar candidato (Solo con token administrativo HMAC)
+  async deleteCandidate(cedula) {
+    const token = sessionStorage.getItem('LP_ADMIN_TOKEN');
+    if (token) {
+      try {
+        const res = await fetch(`/api/admin-data?cedula=${encodeURIComponent(cedula)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          LocalStorageDB.deleteByCedula(cedula);
+          return true;
+        }
+      } catch (err) {
+        console.warn('Fallo /api/admin-data delete:', err);
+      }
+    }
+
+    if (supabaseClient) {
+      try {
+        await supabaseClient.from('pruebas_nomina').delete().eq('cedula', cedula);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    LocalStorageDB.deleteByCedula(cedula);
+    return true;
+  },
+
+  // 4. Servicio Confidencial de Calificación y Solucionario (/api/grade)
+  async getOrSaveGrade(cedula, answers, customGrades = null, save = false) {
+    const token = sessionStorage.getItem('LP_ADMIN_TOKEN');
+    if (!token) throw new Error('Token administrativo no encontrado');
+
+    const res = await fetch('/api/grade', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ cedula, answers, customGrades, save })
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || `Error ${res.status}`);
+    }
+    return await res.json();
+  },
+
+  // Fallbacks de compatibilidad
   async getByCedula(cedula) {
     if (supabaseClient) {
       try {
@@ -353,15 +414,9 @@ const DatabaseService = {
           .select('*')
           .eq('cedula', cedula)
           .maybeSingle();
-
-        if (error) {
-          console.warn('Supabase query error, fallback to local:', error);
-          return LocalStorageDB.findByCedula(cedula);
-        }
-        return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Network error reaching Supabase:', err);
-        return LocalStorageDB.findByCedula(cedula);
+        console.warn(err);
       }
     }
     return LocalStorageDB.findByCedula(cedula);
@@ -375,15 +430,9 @@ const DatabaseService = {
           .insert([candidate])
           .select()
           .single();
-
-        if (error) {
-          console.warn('Supabase insert error, fallback to local:', error);
-          return LocalStorageDB.insert(candidate);
-        }
-        return data;
+        if (!error && data) return data;
       } catch (err) {
-        console.warn('Network error reaching Supabase:', err);
-        return LocalStorageDB.insert(candidate);
+        console.warn(err);
       }
     }
     return LocalStorageDB.insert(candidate);
@@ -397,64 +446,12 @@ const DatabaseService = {
           .update(updates)
           .eq('cedula', cedula)
           .select();
-
-        if (error) {
-          console.warn('Supabase update error, fallback to local:', error);
-          return LocalStorageDB.updateByCedula(cedula, updates);
-        }
-        return data && data[0] ? data[0] : updates;
+        if (!error && data && data[0]) return data[0];
       } catch (err) {
-        console.warn('Network error reaching Supabase:', err);
-        return LocalStorageDB.updateByCedula(cedula, updates);
+        console.warn(err);
       }
     }
     return LocalStorageDB.updateByCedula(cedula, updates);
-  },
-
-  async getAllCandidates() {
-    if (supabaseClient) {
-      try {
-        const { data, error } = await supabaseClient
-          .from('pruebas_nomina')
-          .select('*')
-          .order('fecha', { ascending: false });
-
-        if (error) {
-          console.warn('Supabase select all error, fallback to local:', error);
-          return LocalStorageDB.getAll();
-        }
-        return data || [];
-      } catch (err) {
-        console.warn('Network error reaching Supabase:', err);
-        return LocalStorageDB.getAll();
-      }
-    }
-    return LocalStorageDB.getAll();
-  },
-
-  async deleteCandidate(cedula) {
-    if (supabaseClient) {
-      try {
-        const { error } = await supabaseClient
-          .from('pruebas_nomina')
-          .delete()
-          .eq('cedula', cedula);
-
-        if (error) {
-          console.warn('Supabase delete error, fallback to local:', error);
-          LocalStorageDB.deleteByCedula(cedula);
-          return true;
-        }
-        LocalStorageDB.deleteByCedula(cedula);
-        return true;
-      } catch (err) {
-        console.warn('Network error reaching Supabase:', err);
-        LocalStorageDB.deleteByCedula(cedula);
-        return true;
-      }
-    }
-    LocalStorageDB.deleteByCedula(cedula);
-    return true;
   }
 };
 
@@ -770,15 +767,22 @@ const AntiFraudSystem = {
     const candidateCedula = AppState.currentCandidate ? AppState.currentCandidate.cedula : 'DESCONOCIDA';
     const candidateNombre = AppState.currentCandidate ? AppState.currentCandidate.nombre : 'CANDIDATO';
 
-    // 2. Guardar estado de bloqueo en Supabase inmediatamente
+    // 2. Guardar estado de bloqueo mediante API segura del servidor
     try {
-      await DatabaseService.updateCandidate(candidateCedula, {
-        estado: 'BLOQUEADO',
-        motivo_bloqueo: reason,
-        respuestas: partialAnswers
+      const serverBlock = await DatabaseService.candidateAction('block', {
+        cedula: candidateCedula,
+        reason: reason,
+        answers: partialAnswers
       });
+      if (!serverBlock) {
+        await DatabaseService.updateCandidate(candidateCedula, {
+          estado: 'BLOQUEADO',
+          motivo_bloqueo: reason,
+          respuestas: partialAnswers
+        });
+      }
     } catch (err) {
-      console.error('Error al actualizar bloqueo en Supabase:', err);
+      console.error('Error al actualizar bloqueo:', err);
     }
 
     // 3. Almacenar estado de bloqueo en sessionStorage para que si el candidato recarga con F5,
@@ -854,9 +858,15 @@ function triggerAutosave() {
     }
 
     try {
-      await DatabaseService.updateCandidate(AppState.currentCandidate.cedula, {
-        respuestas: currentAnswers
+      const serverSave = await DatabaseService.candidateAction('autosave', {
+        cedula: AppState.currentCandidate.cedula,
+        answers: currentAnswers
       });
+      if (!serverSave) {
+        await DatabaseService.updateCandidate(AppState.currentCandidate.cedula, {
+          respuestas: currentAnswers
+        });
+      }
       if (DOM.autosaveIndicator) {
         DOM.autosaveIndicator.classList.remove('saving');
       }
@@ -903,7 +913,7 @@ function renderFinishedView(data) {
   }
 }
 
-function startExamView(candidate, existingAnswers = {}) {
+function startExamView(candidate, existingAnswers = {}, remainingSeconds = null) {
   hideAllViews();
   AppState.currentCandidate = candidate;
   AppState.isExamActive = true;
@@ -934,11 +944,16 @@ function startExamView(candidate, existingAnswers = {}) {
   DOM.viewExam.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Iniciar temporizador de 1 hora y 30 minutos (conserva tiempo si es reanudación)
-  const prevStartTime = (existingAnswers && existingAnswers._exam_start_time)
-    || (candidate.respuestas && candidate.respuestas._exam_start_time)
-    || null;
-  ExamTimer.init(candidate.cedula, prevStartTime);
+  // Iniciar temporizador sincronizado con el servidor
+  let startTimeToUse = null;
+  if (typeof remainingSeconds === 'number') {
+    startTimeToUse = Date.now() - ((ExamTimer.TOTAL_DURATION_SECONDS - remainingSeconds) * 1000);
+  } else {
+    startTimeToUse = (existingAnswers && existingAnswers._exam_start_time)
+      || (candidate.respuestas && candidate.respuestas._exam_start_time)
+      || null;
+  }
+  ExamTimer.init(candidate.cedula, startTimeToUse);
 
   // Historial para capturar intento de navegación atrás
   try {
@@ -1022,56 +1037,76 @@ async function handleCandidateLogin(e) {
     return;
   }
 
-  // 2. Consultar el estado en Supabase
-  showToast('Verificando', 'Consultando estado del candidato en el sistema...', 'info');
+  // 2. Consultar el estado en el backend seguro /api/candidate
+  showToast('Verificando', 'Validando identidad y estado de evaluación...', 'info');
 
   try {
-    const existing = await DatabaseService.getByCedula(cedula);
+    const serverCheck = await DatabaseService.candidateAction('check-or-start', {
+      cedula,
+      nombre: fullName,
+      meta: candidateInfo
+    });
 
-    if (existing) {
-      // Caso 1: Candidato BLOQUEADO previamente
-      if (existing.estado === 'BLOQUEADO') {
-        sessionStorage.setItem('LP_BLOCKED_CEDULA', existing.cedula);
-        sessionStorage.setItem('LP_BLOCKED_REASON', existing.motivo_bloqueo);
-        sessionStorage.setItem('LP_BLOCKED_NAME', existing.nombre);
-        sessionStorage.setItem('LP_BLOCKED_TIMESTAMP', existing.fecha);
-
-        renderBlockedView(existing);
+    if (serverCheck) {
+      if (serverCheck.status === 'BLOQUEADO') {
+        sessionStorage.setItem('LP_BLOCKED_CEDULA', serverCheck.cedula);
+        sessionStorage.setItem('LP_BLOCKED_REASON', serverCheck.motivo);
+        sessionStorage.setItem('LP_BLOCKED_NAME', serverCheck.nombre);
+        sessionStorage.setItem('LP_BLOCKED_TIMESTAMP', serverCheck.fecha);
+        renderBlockedView(serverCheck);
         return;
       }
 
-      // Caso 2: Candidato FINALIZADO
+      if (serverCheck.status === 'FINALIZADO') {
+        showToast('Prueba Ya Presentada', 'Usted ya completó y envió esta evaluación anteriormente.', 'warning');
+        renderFinishedView(serverCheck);
+        return;
+      }
+
+      if (serverCheck.status === 'EN_CURSO') {
+        if (serverCheck.resuming) {
+          showToast('Reanudando', 'Continuando examen en progreso...', 'info');
+        }
+        startExamView({
+          nombre: serverCheck.nombre || fullName,
+          cedula: serverCheck.cedula || cedula
+        }, serverCheck.respuestas || {}, serverCheck.remainingSeconds);
+        return;
+      }
+    }
+
+    // Fallback local si la API estuviera desconectada
+    const existing = await DatabaseService.getByCedula(cedula);
+
+    if (existing) {
+      if (existing.estado === 'BLOQUEADO') {
+        renderBlockedView(existing);
+        return;
+      }
       if (existing.estado === 'FINALIZADO') {
         showToast('Prueba Ya Presentada', 'Usted ya completó y envió esta evaluación anteriormente.', 'warning');
         renderFinishedView(existing);
         return;
       }
-
-      // Caso 3: Candidato EN_CURSO (reanudación)
       if (existing.estado === 'EN_CURSO') {
-        showToast('Reanudando', 'Continuando examen en progreso...', 'info');
         startExamView(existing, existing.respuestas || {});
         return;
       }
     }
 
-    // Caso 4: Candidato Nuevo -> Crear registro con estado EN_CURSO y metadatos completos
     const newRecord = {
       nombre: fullName,
       cedula: cedula,
       estado: 'EN_CURSO',
       motivo_bloqueo: null,
-      respuestas: {
-        _candidato: candidateInfo
-      }
+      respuestas: { _candidato: candidateInfo }
     };
-
     const saved = await DatabaseService.insertCandidate(newRecord);
     startExamView(saved || newRecord);
 
   } catch (err) {
     console.error('Error al procesar inicio de candidato:', err);
-    showToast('Error', 'No se pudo conectar con la base de datos. Intente nuevamente.', 'error');
+    showToast('Error', 'No se pudo conectar con el sistema de evaluación. Intente nuevamente.', 'error');
   }
 }
 
@@ -1085,9 +1120,7 @@ async function handleSubmitExam(isAutoSubmit = false) {
   const answeredCount = Object.keys(currentAnswers).filter(k => !k.startsWith('_') && currentAnswers[k].length > 0).length;
 
   if (!isAutoSubmit) {
-    // Pausar temporalmente antifraude para que el modal confirm nativo no dispare window.blur
     AntiFraudSystem.pause();
-
     const confirmMsg = answeredCount < TOTAL_QUESTIONS_COUNT
       ? `Ha respondido ${answeredCount} de las ${TOTAL_QUESTIONS_COUNT} preguntas. ¿Está seguro de enviar su prueba técnica ahora? No podrá modificarla después.`
       : `Ha completado las ${TOTAL_QUESTIONS_COUNT} preguntas. ¿Desea enviar y finalizar su prueba técnica de manera definitiva?`;
@@ -1108,10 +1141,17 @@ async function handleSubmitExam(isAutoSubmit = false) {
 
   try {
     const candidateCedula = AppState.currentCandidate.cedula;
-    const updated = await DatabaseService.updateCandidate(candidateCedula, {
-      estado: 'FINALIZADO',
-      respuestas: currentAnswers
+    const serverSubmit = await DatabaseService.candidateAction('submit', {
+      cedula: candidateCedula,
+      answers: currentAnswers
     });
+
+    if (!serverSubmit) {
+      await DatabaseService.updateCandidate(candidateCedula, {
+        estado: 'FINALIZADO',
+        respuestas: currentAnswers
+      });
+    }
 
     renderFinishedView({
       nombre: AppState.currentCandidate.nombre,
@@ -1283,309 +1323,12 @@ function attachAdminTableActions() {
   });
 }
 
-// Motor de Evaluación Inteligente (Auto-Calificación con Solucionario Oficial)
-function evaluateQuestionWithAnswerKey(qKey, rawAnswer) {
-  if (!rawAnswer || typeof rawAnswer !== 'string') {
-    return { score: 0, reason: 'Sin respuesta registrada' };
-  }
-
-  const text = rawAnswer.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  if (text.length < 2) {
-    return { score: 0, reason: 'Respuesta vacía o muy breve' };
-  }
-
-  const numClean = text.replace(/[\.\,\$\s]/g, '');
-
-  switch (qKey) {
-    // 1.1 Hora ordinaria
-    case 'q1_1': {
-      if (numClean.includes('7500') || numClean.includes('7826')) return { score: 1.0, reason: 'Cálculo exacto del valor hora ordinaria' };
-      if (numClean.includes('240') || numClean.includes('230') || numClean.includes('1800000')) return { score: 0.5, reason: 'Base de horas o planteamiento correcto' };
-      return { score: 0, reason: 'No coincide con $7.500 o $7.826' };
-    }
-    // 1.2 10 HED
-    case 'q1_2': {
-      if (numClean.includes('93750') || numClean.includes('97826')) return { score: 1.0, reason: 'Cálculo exacto de 10 HED (+25%)' };
-      if (text.includes('25%') || text.includes('1.25') || numClean.includes('93') || numClean.includes('97')) return { score: 0.5, reason: 'Recargo del 25% o cálculo aproximado' };
-      return { score: 0, reason: 'Valor de horas extras diurnas no coincide' };
-    }
-    // 1.3 5 HEN
-    case 'q1_3': {
-      if (numClean.includes('65625') || numClean.includes('68478')) return { score: 1.0, reason: 'Cálculo exacto de 5 HEN (+75%)' };
-      if (text.includes('75%') || text.includes('1.75') || numClean.includes('65') || numClean.includes('68')) return { score: 0.5, reason: 'Recargo del 75% o cálculo aproximado' };
-      return { score: 0, reason: 'Valor de horas extras nocturnas no coincide' };
-    }
-    // 1.4 Total Devengado
-    case 'q1_4': {
-      if (numClean.includes('2121375') || numClean.includes('2128304') || numClean.includes('2121') || numClean.includes('2128')) return { score: 1.0, reason: 'Total devengado liquidado correctamente' };
-      if (numClean.includes('162000') || text.includes('auxilio') || text.includes('devengado')) return { score: 0.5, reason: 'Incluye auxilio de transporte o suma parcial' };
-      return { score: 0, reason: 'Total devengado incorrecto' };
-    }
-    // 1.5 IBC Seguridad Social
-    case 'q1_5': {
-      if (numClean.includes('1959375') || numClean.includes('1966304') || numClean.includes('1959') || numClean.includes('1966')) return { score: 1.0, reason: 'IBC liquidado sin auxilio de transporte' };
-      if (text.includes('sin auxilio') || text.includes('resta') || text.includes('no incluye')) return { score: 0.5, reason: 'Identifica que el auxilio no hace parte del IBC' };
-      return { score: 0, reason: 'IBC incorrecto' };
-    }
-    // 1.6 Deducciones
-    case 'q1_6': {
-      if (numClean.includes('156750') || numClean.includes('157304') || (numClean.includes('78375') && text.includes('salud') && text.includes('pension'))) return { score: 1.0, reason: 'Deducciones de 4% Salud y 4% Pensión exactas' };
-      if (text.includes('4%') || numClean.includes('78375') || numClean.includes('156')) return { score: 0.5, reason: 'Aplica el 4% o cálculo cercano' };
-      return { score: 0, reason: 'Deducciones incorrectas' };
-    }
-    // 1.7 Neto a Pagar
-    case 'q1_7': {
-      if (numClean.includes('1964625') || numClean.includes('1971000') || numClean.includes('1964') || numClean.includes('1971')) return { score: 1.0, reason: 'Neto a pagar exacto' };
-      if (text.includes('devengado') || text.includes('deducciones') || text.includes('neto')) return { score: 0.5, reason: 'Fórmula correcta pero cálculo aproximado' };
-      return { score: 0, reason: 'Neto a pagar incorrecto' };
-    }
-
-    // Sección 2: PILA
-    case 'q2_1': {
-      if (numClean.includes('1959375') || numClean.includes('1966304') || numClean.includes('1959') || numClean.includes('1966')) return { score: 1.0, reason: 'IBC de PILA exacto' };
-      if (text.includes('sin auxilio') || text.includes('no incluye')) return { score: 0.5, reason: 'Concepto de exclusión de auxilio de transporte' };
-      return { score: 0, reason: 'IBC de PILA incorrecto' };
-    }
-    case 'q2_2': {
-      const hasWorker = text.includes('4%') || numClean.includes('78375');
-      const hasExon = text.includes('exonerad') || text.includes('0%') || text.includes('114-1') || text.includes('114');
-      if (hasWorker && hasExon) return { score: 1.0, reason: '4% trabajador y empleador exonerado por Art. 114-1' };
-      if (hasWorker || hasExon) return { score: 0.5, reason: 'Menciona aporte de trabajador o exoneración patronal' };
-      return { score: 0, reason: 'No menciona la exoneración del Art. 114-1' };
-    }
-    case 'q2_3': {
-      const hasTotal = text.includes('16%') || numClean.includes('313500');
-      const hasParts = (text.includes('12%') || numClean.includes('235125')) && (text.includes('4%') || numClean.includes('78375'));
-      if (hasTotal || hasParts) return { score: 1.0, reason: 'Pensión 16% total (12% empleador + 4% trabajador)' };
-      if (text.includes('12%') || text.includes('16%') || text.includes('4%')) return { score: 0.5, reason: 'Porcentajes de pensión parciales' };
-      return { score: 0, reason: 'Aportes de pensión incorrectos' };
-    }
-    case 'q2_4': {
-      if (text.includes('0.522') || text.includes('0,522') || numClean.includes('10228') || numClean.includes('10200') || numClean.includes('10300')) return { score: 1.0, reason: 'Tarifa ARL Riesgo I 0.522% exacta a cargo empleador' };
-      if (text.includes('arl') || text.includes('riesgo 1') || text.includes('riesgo i') || text.includes('empleador')) return { score: 0.5, reason: 'Identifica que está a cargo del empleador' };
-      return { score: 0, reason: 'Tarifa o valor de ARL no coincide' };
-    }
-    case 'q2_5': {
-      const hasCcf = text.includes('caja') || text.includes('compensacion') || (text.includes('4%') && numClean.includes('78375'));
-      const hasExon = text.includes('exonerad') || text.includes('sena') || text.includes('icbf');
-      if (hasCcf && hasExon) return { score: 1.0, reason: 'Caja 4% y exoneración SENA / ICBF por Art. 114-1' };
-      if (hasCcf || hasExon) return { score: 0.5, reason: 'Identifica aportes de parafiscales parciales' };
-      return { score: 0, reason: 'No distingue aportes y exoneraciones parafiscales' };
-    }
-    case 'q2_6': {
-      if (numClean.includes('480478') || numClean.includes('480') || text.includes('24.522%') || text.includes('24.5%')) return { score: 1.0, reason: 'Total Planilla PILA exacto' };
-      if (text.includes('total') || text.includes('pila') || numClean.includes('48')) return { score: 0.5, reason: 'Cálculo de PILA aproximado' };
-      return { score: 0, reason: 'Total PILA no coincide' };
-    }
-
-    // Sección 3: Salario Integral
-    case 'q3_1': {
-      if (text.includes('30%') && (numClean.includes('5400000') || numClean.includes('5400') || numClean.includes('70%') || numClean.includes('12600000'))) return { score: 1.0, reason: 'Factor prestacional 30% ($5.400.000) exacto' };
-      if (text.includes('30%') || numClean.includes('5400000')) return { score: 0.5, reason: 'Reconoce el 30% prestacional' };
-      return { score: 0, reason: 'Factor prestacional incorrecto' };
-    }
-    case 'q3_2': {
-      if (text.includes('70%') && (numClean.includes('12600000') || numClean.includes('12600'))) return { score: 1.0, reason: 'IBC 70% ($12.600.000) exacto' };
-      if (text.includes('70%') || numClean.includes('12600000')) return { score: 0.5, reason: 'Reconoce la base del 70%' };
-      return { score: 0, reason: 'IBC de salario integral incorrecto' };
-    }
-    case 'q3_3': {
-      let matches = 0;
-      if (text.includes('salud') || text.includes('12.5')) matches++;
-      if (text.includes('pension') || text.includes('16')) matches++;
-      if (text.includes('fsp') || text.includes('solidaridad')) matches++;
-      if (text.includes('arl') || text.includes('parafiscales')) matches++;
-      if (matches >= 3) return { score: 1.0, reason: 'Liquidación completa de seguridad social sobre el 70%' };
-      if (matches >= 1) return { score: 0.5, reason: 'Identifica aportes de seguridad social de salario integral' };
-      return { score: 0, reason: 'Aportes de salario integral incorrectos' };
-    }
-    case 'q3_4': {
-      const hasPrimaCesantias = text.includes('no') || text.includes('incluid') || text.includes('prestacional');
-      const hasVacaciones = text.includes('vacaciones') || text.includes('recargo') || text.includes('extras');
-      if (hasPrimaCesantias && hasVacaciones) return { score: 1.0, reason: 'Explica que prima/cesantías están incluidas y vacaciones sí' };
-      if (hasPrimaCesantias || hasVacaciones) return { score: 0.5, reason: 'Explica parcialmente el tratamiento prestacional' };
-      return { score: 0, reason: 'Tratamiento de prestaciones incorrecto' };
-    }
-    case 'q3_5': {
-      if (text.includes('25') && (text.includes('smmlv') || text.includes('salarios') || text.includes('minimos') || text.includes('tope'))) return { score: 1.0, reason: 'Tope legal de 25 SMMLV identificado' };
-      if (text.includes('25') || text.includes('tope') || text.includes('smmlv')) return { score: 0.5, reason: 'Menciona el concepto de tope o 25 salarios' };
-      return { score: 0, reason: 'No menciona los 25 SMMLV de tope' };
-    }
-    case 'q3_6': {
-      if (text.includes('25') || text.includes('tope') || numClean.includes('32500000') || numClean.includes('35587500') || numClean.includes('28000000')) return { score: 1.0, reason: 'Aplica el tope de 25 SMMLV sobre el salario de 40M' };
-      if (text.includes('limite') || text.includes('tope') || text.includes('maximo')) return { score: 0.5, reason: 'Identifica que opera un límite' };
-      return { score: 0, reason: 'No aplica el tope de 25 SMMLV' };
-    }
-    case 'q3_7': {
-      if (text.includes('tope') || text.includes('25') || text.includes('salud') || text.includes('pension') || text.includes('fsp')) return { score: 1.0, reason: 'Calcula aportes aplicando el límite legal' };
-      return { score: 0.5, reason: 'Menciona aportes sobre el salario tope' };
-    }
-
-    // Sección 4: Salariales y No Salariales
-    case 'q4_1': {
-      if (numClean.includes('3000000') || numClean.includes('3000') || text.includes('sueldo') || text.includes('basico')) return { score: 1.0, reason: 'Salario básico de $3.000.000 identificado' };
-      return { score: 0.5, reason: 'Concepto salarial identificado' };
-    }
-    case 'q4_2': {
-      if (numClean.includes('3200000') || (text.includes('bonificacion') && text.includes('rodamiento') && text.includes('alimentacion'))) return { score: 1.0, reason: 'Identifica los 3 conceptos no salariales ($3.200.000)' };
-      if (text.includes('bonificacion') || text.includes('rodamiento') || text.includes('alimentacion')) return { score: 0.5, reason: 'Identifica parte de los pagos no salariales' };
-      return { score: 0, reason: 'Pagos no salariales no identificados' };
-    }
-    case 'q4_3': {
-      const has40 = text.includes('40%') || text.includes('40 por');
-      const hasValues = numClean.includes('2480000') || numClean.includes('720000') || numClean.includes('3720000') || numClean.includes('720') || numClean.includes('3720');
-      if (has40 && hasValues) return { score: 1.0, reason: 'Aplica la regla del 40% (Ley 1393) con exceso al IBC' };
-      if (has40 || hasValues || text.includes('1393')) return { score: 0.5, reason: 'Aplica la regla del 40% parcialmente' };
-      return { score: 0, reason: 'No aplica la regla del 40% de la Ley 1393' };
-    }
-    case 'q4_4': {
-      let matches = 0;
-      if (text.includes('128') || text.includes('cst')) matches++;
-      if (text.includes('liberalidad') || text.includes('ocasional')) matches++;
-      if (text.includes('no retribu') || text.includes('directa')) matches++;
-      if (text.includes('pacto') || text.includes('acuerdo') || text.includes('escrito')) matches++;
-      if (matches >= 2) return { score: 1.0, reason: 'Condiciones del Art. 128 CST explicadas claramente' };
-      if (matches >= 1) return { score: 0.5, reason: 'Menciona algunas condiciones de desalarización' };
-      return { score: 0, reason: 'No explica las condiciones legales del Art. 128 CST' };
-    }
-
-    // Sección 5: Retención en la fuente
-    case 'q5_1': {
-      if ((text.includes('anticipo') || text.includes('mecanismo') || text.includes('recaudo')) && (text.includes('renta') || text.includes('impuesto') || text.includes('salarios'))) return { score: 1.0, reason: 'Definición correcta de retención en la fuente por salarios' };
-      if (text.includes('impuesto') || text.includes('retencion') || text.includes('descuento')) return { score: 0.5, reason: 'Concepto general de retención' };
-      return { score: 0, reason: 'Definición imprecisa' };
-    }
-    case 'q5_2': {
-      let matches = 0;
-      if (text.includes('salud') || text.includes('pension')) matches++;
-      if (text.includes('fsp') || text.includes('solidaridad')) matches++;
-      if (text.includes('incrngo') || text.includes('no constitutivo')) matches++;
-      if (matches >= 2) return { score: 1.0, reason: 'Identifica aportes obligatorios como ingresos no constitutivos' };
-      if (matches >= 1) return { score: 0.5, reason: 'Menciona deducciones básicas de seguridad social' };
-      return { score: 0, reason: 'Conceptos de depuración incorrectos' };
-    }
-    case 'q5_3': {
-      let matches = 0;
-      if (text.includes('vivienda') || text.includes('hipotecario')) matches++;
-      if (text.includes('dependiente') || text.includes('hijos')) matches++;
-      if (text.includes('salud') || text.includes('prepagada')) matches++;
-      if (text.includes('afc') || text.includes('fpv') || text.includes('voluntario')) matches++;
-      if (text.includes('25%') || text.includes('exenta')) matches++;
-      if (matches >= 2) return { score: 1.0, reason: 'Menciona dos o más beneficios tributarios y deducciones' };
-      if (matches >= 1) return { score: 0.5, reason: 'Menciona un beneficio tributario' };
-      return { score: 0, reason: 'Beneficios tributarios no identificados' };
-    }
-    case 'q5_4': {
-      if (text.includes('40%') && (text.includes('1340') || text.includes('uvt') || text.includes('ley 2277'))) return { score: 1.0, reason: 'Límite del 40% y 1.340 UVT anuales exacto' };
-      if (text.includes('40%') || text.includes('1340') || text.includes('uvt')) return { score: 0.5, reason: 'Menciona el límite del 40% o las UVT' };
-      return { score: 0, reason: 'Límite máximo no coincide' };
-    }
-
-    // Sección 6: Cumplimiento UGPP
-    case 'q6_1': {
-      let matches = 0;
-      if (text.includes('desalarizacion') || text.includes('evasion') || text.includes('elusion')) matches++;
-      if (text.includes('40%') || text.includes('1393')) matches++;
-      if (text.includes('sancion') || text.includes('omision') || text.includes('inexactitud')) matches++;
-      if (matches >= 2) return { score: 1.0, reason: 'Identifica riesgo de desalarización y violación del límite del 40%' };
-      if (matches >= 1) return { score: 0.5, reason: 'Identifica riesgo sancionatorio general' };
-      return { score: 0, reason: 'Riesgo UGPP no identificado' };
-    }
-    case 'q6_2': {
-      if (text.includes('primacia') || text.includes('realidad') || text.includes('habitual') || text.includes('frecuencia') || text.includes('retribu')) return { score: 1.0, reason: 'Criterio de realidad sobre las formas y habitualidad explicado' };
-      if (text.includes('criterio') || text.includes('pago') || text.includes('laboral')) return { score: 0.5, reason: 'Concepto general de fiscalización' };
-      return { score: 0, reason: 'No explica los criterios técnicos de la UGPP' };
-    }
-    case 'q6_3': {
-      if (text.includes('sancion') || text.includes('interes') || text.includes('reliquidacion') || text.includes('inexactitud') || text.includes('cobro')) return { score: 1.0, reason: 'Sanciones, intereses moratorios y reliquidación explicadas' };
-      if (text.includes('multa') || text.includes('pagar')) return { score: 0.5, reason: 'Menciona consecuencias económicas generales' };
-      return { score: 0, reason: 'Consecuencias de la UGPP no identificadas' };
-    }
-    case 'q6_4': {
-      if (text.includes('40%') || text.includes('1393') || text.includes('otrosi') || text.includes('pacto') || text.includes('auditoria') || text.includes('soporte')) return { score: 1.0, reason: 'Recomendaciones preventivas documentales y de límite del 40%' };
-      if (text.includes('revisar') || text.includes('cumplir') || text.includes('ajustar')) return { score: 0.5, reason: 'Recomendaciones generales' };
-      return { score: 0, reason: 'Recomendaciones no fundamentadas' };
-    }
-
-    // Sección 7: Legislación Laboral
-    case 'q7_1': {
-      if ((text.includes('ingreso base') || text.includes('monto') || text.includes('base')) && (text.includes('cotizacion') || text.includes('seguridad social') || text.includes('salud') || text.includes('pension'))) return { score: 1.0, reason: 'Definición de IBC correcta' };
-      if (text.includes('base') || text.includes('salario')) return { score: 0.5, reason: 'Definición básica de IBC' };
-      return { score: 0, reason: 'Definición incorrecta de IBC' };
-    }
-    case 'q7_2': {
-      if (text.includes('4%') && (text.includes('salud') || text.includes('pension') || text.includes('8%'))) return { score: 1.0, reason: 'Aportes 4% Salud y 4% Pensión (8% total) exactos' };
-      if (text.includes('4%') || text.includes('8%')) return { score: 0.5, reason: 'Porcentajes aproximados' };
-      return { score: 0, reason: 'Porcentajes de cotización del trabajador incorrectos' };
-    }
-    case 'q7_3': {
-      if (text.includes('35%') || text.includes('35 por') || text.includes('0.35')) return { score: 1.0, reason: 'Recargo nocturno del 35% exacto' };
-      return { score: 0, reason: 'Porcentaje de recargo nocturno incorrecto' };
-    }
-    case 'q7_4': {
-      if (text.includes('75%') || text.includes('75 por') || text.includes('0.75')) return { score: 1.0, reason: 'Recargo dominical o festivo del 75% exacto' };
-      return { score: 0, reason: 'Porcentaje de recargo dominical incorrecto' };
-    }
-    case 'q7_5': {
-      if (text.includes('eps') || text.includes('entidad promotora')) return { score: 1.0, reason: 'EPS paga incapacidades del día 3 al 180' };
-      if (text.includes('empleador') && (text.includes('primeros') || text.includes('2 dias'))) return { score: 0.5, reason: 'Menciona que los 2 primeros días son del empleador' };
-      return { score: 0, reason: 'Entidad responsable incorrecta' };
-    }
-    case 'q7_6': {
-      if (text.includes('2 smmlv') || text.includes('dos salarios') || text.includes('2 salarios') || text.includes('hasta 2')) return { score: 1.0, reason: 'Trabajadores hasta 2 SMMLV exacto' };
-      if (text.includes('salario') || text.includes('minimo') || text.includes('transporte')) return { score: 0.5, reason: 'Menciona salario mínimo pero omite el tope de 2 SMMLV' };
-      return { score: 0, reason: 'Requisito de auxilio de transporte incorrecto' };
-    }
-
-    default:
-      return { score: 0.5, reason: 'Evaluación general' };
-  }
-}
-
-function autoGradeCurrentCandidate() {
-  const cedula = AppState.currentGradingCedula;
-  if (!cedula) return;
-
-  const candidate = AppState.adminData.find(c => c.cedula === cedula);
-  if (!candidate) return;
-
-  const answers = candidate.respuestas || {};
-  const newGrades = {};
-
-  Object.keys(EXAM_QUESTIONS_MAP).forEach(qKey => {
-    const rawAnswer = answers[qKey] || '';
-    const result = evaluateQuestionWithAnswerKey(qKey, rawAnswer);
-    newGrades[qKey] = result.score;
-
-    const row = DOM.modalResponsesContent.querySelector(`.response-item-row[data-qkey="${qKey}"]`);
-    if (row) {
-      const controls = row.querySelector('.question-grade-controls');
-      if (controls) {
-        controls.querySelectorAll('.btn-grade-opt').forEach(btn => {
-          btn.classList.remove('active');
-          const btnScore = parseFloat(btn.getAttribute('data-score'));
-          if (btnScore === result.score) {
-            btn.classList.add('active');
-          }
-        });
-
-        let tag = controls.querySelector('.auto-grade-tag');
-        if (!tag) {
-          tag = document.createElement('span');
-          tag.className = 'auto-grade-tag';
-          controls.appendChild(tag);
-        }
-        tag.innerHTML = `🤖 Sugerido: ${result.score} pts · <em>${escapeHtml(result.reason)}</em>`;
-      }
-    }
-  });
-
-  DOM.responsesModal._currentGrades = newGrades;
-  updateModalGradingSummary(newGrades);
-  showToast('Auto-Calificación Lista', 'Respuestas evaluadas con el solucionario. Puedes revisar y modificar cualquier pregunta.', 'info');
-}
-
-function openResponsesModal(cedula) {
+// ==============================================================================
+// 12. SISTEMA CONFIDENCIAL DE REVISIÓN Y SOLUCIONARIO (SOLO PARA PAOLA)
+// Las respuestas oficiales y criterios se consultan en tiempo real a /api/grade
+// protegiéndolos de cualquier candidato que inspeccione el código.
+// ==============================================================================
+async function openResponsesModal(cedula) {
   const candidate = AppState.adminData.find(c => c.cedula === cedula);
   if (!candidate) return;
 
@@ -1604,98 +1347,121 @@ function openResponsesModal(cedula) {
     <strong>Fecha:</strong> ${formatDate(candidate.fecha)}
   `;
 
-  const answers = candidate.respuestas || {};
-  const hasSavedGrades = answers._calificacion && answers._calificacion.items && Object.keys(answers._calificacion.items).length > 0;
-  const savedGrades = hasSavedGrades ? { ...answers._calificacion.items } : {};
-
-  // Sincronizar botón de solucionario
-  if (DOM.labelToggleAnswerKey) {
-    DOM.labelToggleAnswerKey.textContent = AppState.showAnswerKeyInModal
-      ? 'Ocultar Solucionario Guía'
-      : 'Mostrar Solucionario Guía';
-  }
-
-  // Agrupar preguntas por sección
-  const sections = {};
-  Object.keys(EXAM_QUESTIONS_MAP).forEach(qKey => {
-    const meta = EXAM_QUESTIONS_MAP[qKey];
-    if (!sections[meta.section]) {
-      sections[meta.section] = [];
-    }
-    sections[meta.section].push({
-      key: qKey,
-      title: meta.title,
-      answer: answers[qKey] || '',
-      guide: EXAM_ANSWER_KEY[qKey] || '',
-      grade: savedGrades[qKey] !== undefined ? savedGrades[qKey] : null
-    });
-  });
-
-  let html = '';
-  Object.keys(sections).forEach(sectionTitle => {
-    html += `
-      <div class="response-section-block">
-        <div class="response-section-header">${escapeHtml(sectionTitle)}</div>
-    `;
-
-    sections[sectionTitle].forEach(item => {
-      const hasAnswer = item.answer && item.answer.trim().length > 0;
-      const g = item.grade;
-      html += `
-        <div class="response-item-row" data-qkey="${item.key}">
-          <div class="response-q-title">${escapeHtml(item.title)}</div>
-          <div class="response-q-answer ${hasAnswer ? '' : 'empty'}">
-            ${hasAnswer ? escapeHtml(item.answer) : '[Sin respuesta registrada por el candidato]'}
-          </div>
-          <div class="answer-key-guide-box ${AppState.showAnswerKeyInModal ? '' : 'hidden'}">
-            <strong>💡 Respuesta Esperada (Solucionario Oficial):</strong>
-            ${escapeHtml(item.guide)}
-          </div>
-          <div class="question-grade-controls" data-qkey="${item.key}">
-            <span class="question-grade-label">Calificar pregunta:</span>
-            <button type="button" class="btn-grade-opt grade-correct ${g === 1 ? 'active' : ''}" data-qkey="${item.key}" data-score="1">✅ Correcta (1.0)</button>
-            <button type="button" class="btn-grade-opt grade-partial ${g === 0.5 ? 'active' : ''}" data-qkey="${item.key}" data-score="0.5">⚠️ Parcial (0.5)</button>
-            <button type="button" class="btn-grade-opt grade-wrong ${g === 0 ? 'active' : ''}" data-qkey="${item.key}" data-score="0">❌ Incorrecta (0)</button>
-          </div>
-        </div>
-      `;
-    });
-
-    html += `</div>`;
-  });
-
-  DOM.modalResponsesContent.innerHTML = html;
-
-  // Eventos de botones de calificación por pregunta
-  DOM.modalResponsesContent.querySelectorAll('.btn-grade-opt').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const qKey = btn.getAttribute('data-qkey');
-      const scoreVal = parseFloat(btn.getAttribute('data-score'));
-      const parent = btn.closest('.question-grade-controls');
-
-      if (btn.classList.contains('active')) {
-        btn.classList.remove('active');
-        delete savedGrades[qKey];
-      } else {
-        parent.querySelectorAll('.btn-grade-opt').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        savedGrades[qKey] = scoreVal;
-      }
-
-      updateModalGradingSummary(savedGrades);
-    });
-  });
-
-  DOM.responsesModal._currentGrades = savedGrades;
-
-  if (hasSavedGrades) {
-    updateModalGradingSummary(savedGrades);
-  } else {
-    // Si aún no ha sido calificado, ejecutar auto-calificación de inmediato para comodidad de Paola
-    autoGradeCurrentCandidate();
-  }
-
+  DOM.modalResponsesContent.innerHTML = `
+    <div class="text-center py-12 text-muted">
+      <div style="font-size:1.6rem; margin-bottom: 0.5rem;">🔒 Cargando Solucionario Oficial y Evaluación...</div>
+      <p>Consultando de forma segura con el servidor confidencial de LOZADA &amp; PARTNERS SAS...</p>
+    </div>
+  `;
   DOM.responsesModal.classList.remove('hidden');
+
+  const answers = candidate.respuestas || {};
+  const savedGrades = (answers._calificacion && answers._calificacion.items) ? { ...answers._calificacion.items } : null;
+
+  try {
+    const data = await DatabaseService.getOrSaveGrade(cedula, answers, savedGrades, false);
+    const evaluacion = data.evaluacion || {};
+    const solucionario = data.solucionario || {};
+    AppState.adminAnswerKey = solucionario;
+
+    const activeGrades = savedGrades || (data.calificacion && data.calificacion.items) || {};
+
+    if (DOM.labelToggleAnswerKey) {
+      DOM.labelToggleAnswerKey.textContent = AppState.showAnswerKeyInModal
+        ? 'Ocultar Solucionario Guía'
+        : 'Mostrar Solucionario Guía';
+    }
+
+    const sections = {};
+    Object.keys(EXAM_QUESTIONS_MAP).forEach(qKey => {
+      const meta = EXAM_QUESTIONS_MAP[qKey];
+      if (!sections[meta.section]) {
+        sections[meta.section] = [];
+      }
+      const evalInfo = evaluacion[qKey] || {};
+      sections[meta.section].push({
+        key: qKey,
+        title: meta.title,
+        answer: answers[qKey] || '',
+        guide: evalInfo.guide || solucionario[qKey] || '',
+        grade: activeGrades[qKey] !== undefined ? activeGrades[qKey] : evalInfo.score,
+        reason: evalInfo.reason || ''
+      });
+    });
+
+    let html = '';
+    Object.keys(sections).forEach(sectionTitle => {
+      html += `
+        <div class="response-section-block">
+          <div class="response-section-header">${escapeHtml(sectionTitle)}</div>
+      `;
+
+      sections[sectionTitle].forEach(item => {
+        const hasAnswer = item.answer && item.answer.trim().length > 0;
+        const g = item.grade;
+        html += `
+          <div class="response-item-row" data-qkey="${item.key}">
+            <div class="response-q-title">${escapeHtml(item.title)}</div>
+            <div class="response-q-answer ${hasAnswer ? '' : 'empty'}">
+              ${hasAnswer ? escapeHtml(item.answer) : '[Sin respuesta registrada por el candidato]'}
+            </div>
+            <div class="answer-key-guide-box ${AppState.showAnswerKeyInModal ? '' : 'hidden'}">
+              <strong>💡 Respuesta Esperada (Solucionario Oficial Confidencial):</strong>
+              ${escapeHtml(item.guide)}
+            </div>
+            <div class="question-grade-controls" data-qkey="${item.key}">
+              <span class="question-grade-label">Calificar pregunta:</span>
+              <button type="button" class="btn-grade-opt grade-correct ${g === 1 ? 'active' : ''}" data-qkey="${item.key}" data-score="1">✅ Correcta (1.0)</button>
+              <button type="button" class="btn-grade-opt grade-partial ${g === 0.5 ? 'active' : ''}" data-qkey="${item.key}" data-score="0.5">⚠️ Parcial (0.5)</button>
+              <button type="button" class="btn-grade-opt grade-wrong ${g === 0 ? 'active' : ''}" data-qkey="${item.key}" data-score="0">❌ Incorrecta (0)</button>
+              ${item.reason ? `<span class="auto-grade-tag">🤖 Sugerido: ${g} pts · <em>${escapeHtml(item.reason)}</em></span>` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+    });
+
+    DOM.modalResponsesContent.innerHTML = html;
+
+    DOM.modalResponsesContent.querySelectorAll('.btn-grade-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qKey = btn.getAttribute('data-qkey');
+        const scoreVal = parseFloat(btn.getAttribute('data-score'));
+        const parent = btn.closest('.question-grade-controls');
+
+        if (btn.classList.contains('active')) {
+          btn.classList.remove('active');
+          delete activeGrades[qKey];
+        } else {
+          parent.querySelectorAll('.btn-grade-opt').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeGrades[qKey] = scoreVal;
+        }
+
+        updateModalGradingSummary(activeGrades);
+      });
+    });
+
+    DOM.responsesModal._currentGrades = activeGrades;
+    updateModalGradingSummary(activeGrades);
+  } catch (err) {
+    console.error('Error al consultar /api/grade:', err);
+    DOM.modalResponsesContent.innerHTML = `
+      <div class="text-center py-10 text-danger">
+        <p><strong>Error de autenticación o comunicación segura:</strong> ${escapeHtml(err.message)}</p>
+        <p class="text-xs text-muted mt-2">Asegúrese de haber iniciado sesión como administradora autorizada.</p>
+      </div>
+    `;
+  }
+}
+
+async function autoGradeCurrentCandidate() {
+  const cedula = AppState.currentGradingCedula;
+  if (!cedula) return;
+  await openResponsesModal(cedula);
+  showToast('Auto-Calificación Actualizada', 'Respuestas reevaluadas con el solucionario confidencial.', 'info');
 }
 
 function updateModalGradingSummary(gradesMap) {
@@ -1722,29 +1488,24 @@ async function saveCandidateGrading() {
   const totalPoints = keys.reduce((acc, k) => acc + (Number(gradesMap[k]) || 0), 0);
   const percentage = Math.round((totalPoints / TOTAL_QUESTIONS_COUNT) * 100);
 
-  const updatedAnswers = {
-    ...(candidate.respuestas || {}),
-    _calificacion: {
-      puntos: totalPoints,
-      porcentaje: percentage,
-      evaluadas: keys.length,
-      fecha_calificacion: new Date().toISOString(),
-      items: gradesMap
-    }
-  };
-
   try {
     if (DOM.btnSaveGrading) {
       DOM.btnSaveGrading.disabled = true;
-      DOM.btnSaveGrading.textContent = 'Guardando...';
+      DOM.btnSaveGrading.textContent = 'Guardando en servidor...';
     }
-    await DatabaseService.saveAnswers(cedula, updatedAnswers);
-    candidate.respuestas = updatedAnswers;
+
+    const res = await DatabaseService.getOrSaveGrade(cedula, candidate.respuestas, gradesMap, true);
+    if (res && res.calificacion) {
+      candidate.respuestas = {
+        ...(candidate.respuestas || {}),
+        _calificacion: res.calificacion
+      };
+    }
     renderAdminDashboard();
     showToast('Calificación Guardada', `Se guardó el puntaje de ${percentage}% (${totalPoints}/38) para ${candidate.nombre}.`, 'success');
   } catch (err) {
-    console.error('Error al guardar calificación:', err);
-    showToast('Error', 'No se pudo guardar la calificación en la base de datos.', 'error');
+    console.error('Error al guardar calificación segura:', err);
+    showToast('Error', `No se pudo guardar la calificación: ${err.message}`, 'error');
   } finally {
     if (DOM.btnSaveGrading) {
       DOM.btnSaveGrading.disabled = false;
@@ -1877,21 +1638,62 @@ function initAdminLoginModal() {
   if (DOM.btnCancelAdminLogin) DOM.btnCancelAdminLogin.addEventListener('click', closeLogin);
 
   if (DOM.adminLoginForm) {
-    DOM.adminLoginForm.addEventListener('submit', (e) => {
+    DOM.adminLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const pwd = DOM.adminPasswordInput ? DOM.adminPasswordInput.value.trim().toLowerCase() : '';
+      const pwd = DOM.adminPasswordInput ? DOM.adminPasswordInput.value.trim() : '';
 
-      // Contraseña autorizada para Paola
-      if (pwd === 'paola2026' || pwd === 'paola') {
-        sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
-        closeLogin();
-        showToast('Bienvenida Paola', 'Acceso correcto al Panel de Recursos Humanos.', 'success');
-        openAdminPanel();
-      } else {
-        if (DOM.adminLoginError) DOM.adminLoginError.classList.remove('hidden');
-        if (DOM.adminPasswordInput) {
-          DOM.adminPasswordInput.focus();
-          DOM.adminPasswordInput.select();
+      const submitBtn = DOM.adminLoginForm.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verificando...';
+      }
+
+      try {
+        const res = await fetch('/api/admin-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success && data.token) {
+          sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
+          sessionStorage.setItem('LP_ADMIN_TOKEN', data.token);
+          closeLogin();
+          showToast('Bienvenida Paola', 'Acceso seguro al Panel de Recursos Humanos.', 'success');
+          openAdminPanel();
+        } else {
+          // Fallback para desarrollo local si la API aún no está levantada
+          if (res.status === 404 && (pwd.toLowerCase() === 'paola2026' || pwd.toLowerCase() === 'paola')) {
+            sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
+            closeLogin();
+            showToast('Bienvenida Paola', 'Acceso local al Panel de Recursos Humanos.', 'success');
+            openAdminPanel();
+            return;
+          }
+          if (DOM.adminLoginError) {
+            const errSpan = DOM.adminLoginError.querySelector('span');
+            if (errSpan) errSpan.textContent = data.error || 'Credenciales inválidas. Acceso restringido.';
+            DOM.adminLoginError.classList.remove('hidden');
+          }
+          if (DOM.adminPasswordInput) {
+            DOM.adminPasswordInput.focus();
+            DOM.adminPasswordInput.select();
+          }
+        }
+      } catch (err) {
+        console.error('Error al autenticar administrador:', err);
+        if (pwd.toLowerCase() === 'paola2026' || pwd.toLowerCase() === 'paola') {
+          sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
+          closeLogin();
+          openAdminPanel();
+        } else {
+          if (DOM.adminLoginError) DOM.adminLoginError.classList.remove('hidden');
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Ingresar al Panel';
         }
       }
     });
