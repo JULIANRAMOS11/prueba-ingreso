@@ -226,6 +226,17 @@ const DOM = {
   cfgSupabaseUrl: document.getElementById('cfgSupabaseUrl'),
   cfgSupabaseKey: document.getElementById('cfgSupabaseKey'),
 
+  // Login de Administrador (Paola)
+  btnOpenAdminLogin: document.getElementById('btnOpenAdminLogin'),
+  adminLoginModal: document.getElementById('adminLoginModal'),
+  btnCloseAdminLogin: document.getElementById('btnCloseAdminLogin'),
+  btnCancelAdminLogin: document.getElementById('btnCancelAdminLogin'),
+  adminLoginForm: document.getElementById('adminLoginForm'),
+  adminUsernameInput: document.getElementById('adminUsernameInput'),
+  adminPasswordInput: document.getElementById('adminPasswordInput'),
+  adminLoginError: document.getElementById('adminLoginError'),
+  btnAdminLogout: document.getElementById('btnAdminLogout'),
+
   // Toast
   toastNotification: document.getElementById('toastNotification'),
   toastTitle: document.getElementById('toastTitle'),
@@ -1274,29 +1285,109 @@ function initConfigModal() {
 }
 
 // ==============================================================================
-// 14. INICIALIZADOR GENERAL
+// 14. INICIALIZADOR GENERAL Y AUTENTICACIÓN ADMIN (PAOLA)
 // ==============================================================================
+let adminRefreshInterval = null;
+
+function openAdminPanel() {
+  console.log('🔑 Acceso concedido al Panel de Recursos Humanos para Paola.');
+  hideAllViews();
+  if (DOM.viewAdmin) {
+    DOM.viewAdmin.classList.remove('hidden');
+  }
+
+  loadAdminData();
+
+  if (!adminRefreshInterval) {
+    adminRefreshInterval = setInterval(loadAdminData, 15000);
+  }
+}
+
+function closeAdminPanel() {
+  if (adminRefreshInterval) {
+    clearInterval(adminRefreshInterval);
+    adminRefreshInterval = null;
+  }
+  sessionStorage.removeItem('LP_ADMIN_AUTH');
+
+  // Limpiar parámetro de URL si existía (?admin=...)
+  if (window.location.search.includes('admin=')) {
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+
+  hideAllViews();
+  if (DOM.viewIdentification) {
+    DOM.viewIdentification.classList.remove('hidden');
+  }
+  showToast('Sesión Cerrada', 'Ha salido del Panel de Recursos Humanos.', 'info');
+}
+
+function initAdminLoginModal() {
+  if (DOM.btnOpenAdminLogin) {
+    DOM.btnOpenAdminLogin.addEventListener('click', () => {
+      if (DOM.adminLoginError) DOM.adminLoginError.classList.add('hidden');
+      if (DOM.adminPasswordInput) DOM.adminPasswordInput.value = '';
+      if (DOM.adminLoginModal) {
+        DOM.adminLoginModal.classList.remove('hidden');
+        setTimeout(() => {
+          if (DOM.adminPasswordInput) DOM.adminPasswordInput.focus();
+        }, 150);
+      }
+    });
+  }
+
+  const closeLogin = () => {
+    if (DOM.adminLoginModal) DOM.adminLoginModal.classList.add('hidden');
+    if (DOM.adminLoginError) DOM.adminLoginError.classList.add('hidden');
+  };
+
+  if (DOM.btnCloseAdminLogin) DOM.btnCloseAdminLogin.addEventListener('click', closeLogin);
+  if (DOM.btnCancelAdminLogin) DOM.btnCancelAdminLogin.addEventListener('click', closeLogin);
+
+  if (DOM.adminLoginForm) {
+    DOM.adminLoginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pwd = DOM.adminPasswordInput ? DOM.adminPasswordInput.value.trim().toLowerCase() : '';
+
+      // Contraseña autorizada para Paola
+      if (pwd === 'paola2026' || pwd === 'paola') {
+        sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
+        closeLogin();
+        showToast('Bienvenida Paola', 'Acceso correcto al Panel de Recursos Humanos.', 'success');
+        openAdminPanel();
+      } else {
+        if (DOM.adminLoginError) DOM.adminLoginError.classList.remove('hidden');
+        if (DOM.adminPasswordInput) {
+          DOM.adminPasswordInput.focus();
+          DOM.adminPasswordInput.select();
+        }
+      }
+    });
+  }
+
+  if (DOM.btnAdminLogout) {
+    DOM.btnAdminLogout.addEventListener('click', closeAdminPanel);
+  }
+}
+
 function initApp() {
   // 1. Inicializar Supabase
   initSupabase();
 
-  // 2. Comprobar parámetro de URL para Vista Administrador (?admin=paola2026)
-  const urlParams = new URLSearchParams(window.location.search);
-  const isAdminView = urlParams.get('admin') === 'paola2026';
-
-  if (isAdminView) {
-    console.log('🔑 Acceso concedido a Vista Administrador para Paola.');
-    hideAllViews();
-    DOM.viewAdmin.classList.remove('hidden');
-
-    // Inicializar listeners del panel de administración
+  // 2. Inicializar listeners del panel de administración
+  if (DOM.btnRefreshAdminTable) {
     DOM.btnRefreshAdminTable.addEventListener('click', loadAdminData);
+  }
 
+  if (DOM.adminSearchInput) {
     DOM.adminSearchInput.addEventListener('input', (e) => {
       AppState.adminSearchQuery = e.target.value.trim();
       renderAdminDashboard();
     });
+  }
 
+  if (DOM.filterPills) {
     DOM.filterPills.forEach(pill => {
       pill.addEventListener('click', () => {
         DOM.filterPills.forEach(p => p.classList.remove('active'));
@@ -1305,27 +1396,44 @@ function initApp() {
         renderAdminDashboard();
       });
     });
+  }
 
-    // Modales de Admin
+  // Modales de Admin
+  if (DOM.btnCloseResponsesModal) {
     DOM.btnCloseResponsesModal.addEventListener('click', () => DOM.responsesModal.classList.add('hidden'));
+  }
+  if (DOM.btnDoneViewingResponses) {
     DOM.btnDoneViewingResponses.addEventListener('click', () => DOM.responsesModal.classList.add('hidden'));
+  }
+  if (DOM.btnExportResponses) {
     DOM.btnExportResponses.addEventListener('click', () => window.print());
+  }
 
+  if (DOM.btnCancelReset) {
     DOM.btnCancelReset.addEventListener('click', () => {
       DOM.confirmResetModal.classList.add('hidden');
       candidateToReset = null;
     });
+  }
+  if (DOM.btnConfirmReset) {
     DOM.btnConfirmReset.addEventListener('click', executeCandidateReset);
+  }
 
-    initConfigModal();
-    loadAdminData();
+  initConfigModal();
+  initAdminLoginModal();
 
-    // Actualización automática cada 15 segundos en panel admin
-    setInterval(loadAdminData, 15000);
+  // 3. Comprobar si accede directamente por URL (?admin=paola2026) o ya tenía sesión activa
+  const urlParams = new URLSearchParams(window.location.search);
+  const isAdminUrl = urlParams.get('admin') === 'paola2026';
+  const isAdminSession = sessionStorage.getItem('LP_ADMIN_AUTH') === 'true';
+
+  if (isAdminUrl || isAdminSession) {
+    sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
+    openAdminPanel();
     return;
   }
 
-  // 3. Vista Candidato: Comprobar bloqueo previo en sesión
+  // 4. Vista Candidato: Comprobar bloqueo previo en sesión
   const blockedCedula = sessionStorage.getItem('LP_BLOCKED_CEDULA');
   if (blockedCedula) {
     renderBlockedView({
@@ -1337,17 +1445,23 @@ function initApp() {
     return;
   }
 
-  // 4. Iniciar en Vista de Identificación
+  // 5. Iniciar en Vista de Identificación
   hideAllViews();
-  DOM.viewIdentification.classList.remove('hidden');
+  if (DOM.viewIdentification) {
+    DOM.viewIdentification.classList.remove('hidden');
+  }
 
   // Listeners de Login Candidato
-  DOM.candidateLoginForm.addEventListener('submit', handleCandidateLogin);
+  if (DOM.candidateLoginForm) {
+    DOM.candidateLoginForm.addEventListener('submit', handleCandidateLogin);
+  }
 
   // Formatear cédula en tiempo real para solo permitir dígitos
-  DOM.candidateCedula.addEventListener('input', (e) => {
-    e.target.value = sanitizeCedula(e.target.value);
-  });
+  if (DOM.candidateCedula) {
+    DOM.candidateCedula.addEventListener('input', (e) => {
+      e.target.value = sanitizeCedula(e.target.value);
+    });
+  }
 
   // Listeners del Formulario de Examen (Autoguardado y Progreso)
   if (DOM.technicalExamForm) {
