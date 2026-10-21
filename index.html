@@ -235,6 +235,15 @@
   <!-- 2. VISTA CANDIDATO: EXAMEN TÉCNICO EN CURSO (CON ANTIFRAUDE ACTIVO) -->
   <!-- ========================================================================= -->
   <section id="viewExam" class="app-view hidden no-select">
+    <!-- Burbuja Flotante de Cámara Web en Vivo (Supervisión Facial Activa) -->
+    <div id="floatingCameraBubble" class="floating-camera-bubble hidden" title="Supervisión Facial en Vivo - LOZADA & PARTNERS SAS">
+      <div class="camera-bubble-header">
+        <span class="pulsing-rec-dot"></span>
+        <span class="camera-bubble-label">CÁMARA FACIAL EN VIVO</span>
+      </div>
+      <video id="webcamLivePreview" autoplay muted playsinline class="webcam-live-video"></video>
+    </div>
+
     <!-- Barra Superior Fija de Supervisión y Progreso -->
     <header class="exam-header shadow-md">
       <div class="header-container">
@@ -1152,39 +1161,43 @@
         </div>
       </div>
 
-      <!-- Tarjeta de Grabación de Auditoría (Pantalla y Audio) -->
-      <div id="modalRecordingCard" class="modal-recording-card card hidden">
-        <div class="recording-card-header">
-          <div class="recording-title-box">
-            <span class="recording-icon">🎥</span>
-            <div>
-              <h4 class="recording-card-title">Grabación de Pantalla y Audio (Auditoría Ley 1581)</h4>
-              <p class="text-xs text-muted" id="modalRecordingMeta">Supervisión técnica del examen</p>
+      <!-- Contenedor con Scroll Completo de la Evaluación -->
+      <div class="modal-body modal-scrollable" id="modalResponsesScrollContainer">
+        <!-- Tarjeta de Grabación de Auditoría (Pantalla, Cámara y Audio) -->
+        <div id="modalRecordingCard" class="modal-recording-card card hidden">
+          <div class="recording-card-header">
+            <div class="recording-title-box">
+              <span class="recording-icon">🎥</span>
+              <div>
+                <h4 class="recording-card-title">Grabación de Pantalla, Cámara y Audio (Auditoría Ley 1581)</h4>
+                <p class="text-xs text-muted" id="modalRecordingMeta">Supervisión técnica del examen</p>
+              </div>
+            </div>
+            <div class="recording-header-actions">
+              <div class="speed-control-group">
+                <span class="speed-label">Velocidad:</span>
+                <button type="button" class="btn-speed active" data-speed="1">1x</button>
+                <button type="button" class="btn-speed" data-speed="1.5">1.5x</button>
+                <button type="button" class="btn-speed" data-speed="2">2x</button>
+                <button type="button" class="btn-speed" data-speed="4">4x</button>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btnToggleRecordingCollapse">Ocultar Video</button>
+              <button type="button" class="btn btn-outline-danger btn-sm" id="btnDeleteCandidateRecording" title="Eliminar grabación para liberar espacio en Supabase (Conservación de 30 días según Ley 1581)">
+                🗑️ Liberar Espacio
+              </button>
             </div>
           </div>
-          <div class="recording-header-actions">
-            <div class="speed-control-group">
-              <span class="speed-label">Velocidad:</span>
-              <button type="button" class="btn-speed active" data-speed="1">1x</button>
-              <button type="button" class="btn-speed" data-speed="1.5">1.5x</button>
-              <button type="button" class="btn-speed" data-speed="2">2x</button>
-              <button type="button" class="btn-speed" data-speed="4">4x</button>
-            </div>
-            <button type="button" class="btn btn-outline-danger btn-sm" id="btnDeleteCandidateRecording" title="Eliminar grabación para liberar espacio en Supabase (Conservación de 30 días según Ley 1581)">
-              🗑️ Liberar Espacio
-            </button>
+          <div class="recording-player-wrapper" id="recordingPlayerWrapper">
+            <video id="modalRecordingPlayer" controls playsinline preload="metadata" class="recording-video-element"></video>
+          </div>
+          <div class="recording-legal-notice">
+            <small>⚖️ <strong>Ley 1581 de 2012:</strong> Grabación autorizada con fines exclusivos de validación de prueba técnica. Destrucción tras 30 días para liberar almacenamiento.</small>
           </div>
         </div>
-        <div class="recording-player-wrapper">
-          <video id="modalRecordingPlayer" controls playsinline preload="metadata" class="recording-video-element"></video>
-        </div>
-        <div class="recording-legal-notice">
-          <small>⚖️ <strong>Ley 1581 de 2012:</strong> Grabación autorizada con fines exclusivos de validación de prueba técnica. Destrucción tras 30 días para liberar almacenamiento.</small>
-        </div>
-      </div>
 
-      <div class="modal-body modal-scrollable" id="modalResponsesContent">
-        <!-- Renderizado dinámico de las 7 secciones con respuestas y calificador -->
+        <div id="modalResponsesContent">
+          <!-- Renderizado dinámico de las 7 secciones con respuestas y calificador -->
+        </div>
       </div>
 
       <div class="modal-footer">

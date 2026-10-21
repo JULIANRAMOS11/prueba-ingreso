@@ -194,6 +194,8 @@ const DOM = {
   answeredQuestionsCount: document.getElementById('answeredQuestionsCount'),
   examProgressBar: document.getElementById('examProgressBar'),
   autosaveIndicator: document.getElementById('autosaveIndicator'),
+  floatingCameraBubble: document.getElementById('floatingCameraBubble'),
+  webcamLivePreview: document.getElementById('webcamLivePreview'),
 
   // Elementos de Bloqueo
   blockedCandidateName: document.getElementById('blockedCandidateName'),
@@ -223,7 +225,9 @@ const DOM = {
   modalResponsesContent: document.getElementById('modalResponsesContent'),
   modalRecordingCard: document.getElementById('modalRecordingCard'),
   modalRecordingPlayer: document.getElementById('modalRecordingPlayer'),
+  recordingPlayerWrapper: document.getElementById('recordingPlayerWrapper'),
   modalRecordingMeta: document.getElementById('modalRecordingMeta'),
+  btnToggleRecordingCollapse: document.getElementById('btnToggleRecordingCollapse'),
   btnDeleteCandidateRecording: document.getElementById('btnDeleteCandidateRecording'),
   btnCloseResponsesModal: document.getElementById('btnCloseResponsesModal'),
   btnDoneViewingResponses: document.getElementById('btnDoneViewingResponses'),
@@ -855,7 +859,7 @@ const ScreenAudioRecorder = {
   mediaRecorder: null,
   recordedChunks: [],
   screenStream: null,
-  audioStream: null,
+  cameraStream: null,
   combinedStream: null,
   isRecording: false,
 
@@ -885,25 +889,53 @@ const ScreenAudioRecorder = {
       });
     }
 
-    // 2. Captura de audio del micrófono
+    // 2. Captura de CÁMARA WEB FACIAL y MICRÓFONO AMBIENTAL (Supervisión Biométrica Ley 1581)
     try {
-      this.audioStream = await navigator.mediaDevices.getUserMedia({
+      this.cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 320, max: 640 },
+          height: { ideal: 240, max: 480 },
+          frameRate: { ideal: 10, max: 15 }
+        },
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           sampleRate: 16000
-        },
-        video: false
+        }
       });
-    } catch (audioErr) {
-      console.warn('Micrófono no disponible, continuando solo con pantalla:', audioErr);
-      this.audioStream = null;
+
+      // Mostrar cámara en la burbuja flotante del candidato en tiempo real
+      if (DOM.webcamLivePreview && this.cameraStream) {
+        DOM.webcamLivePreview.srcObject = this.cameraStream;
+        if (DOM.floatingCameraBubble) {
+          DOM.floatingCameraBubble.classList.remove('hidden');
+        }
+      }
+    } catch (camErr) {
+      console.warn('Cámara web no disponible o denegada, intentando solo micrófono:', camErr);
+      try {
+        this.cameraStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            sampleRate: 16000
+          },
+          video: false
+        });
+      } catch (audioErr) {
+        console.warn('Micrófono tampoco disponible:', audioErr);
+        this.cameraStream = null;
+      }
     }
 
-    // 3. Combinar pistas
+    // 3. Combinar pistas para el archivo final de video
     const tracks = [...this.screenStream.getVideoTracks()];
-    if (this.audioStream) {
-      tracks.push(...this.audioStream.getAudioTracks());
+    if (this.cameraStream) {
+      // Agregar audio a la grabación
+      const audioTracks = this.cameraStream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        tracks.push(audioTracks[0]);
+      }
     }
     this.combinedStream = new MediaStream(tracks);
 
@@ -933,7 +965,7 @@ const ScreenAudioRecorder = {
 
     this.mediaRecorder.start(10000);
     this.isRecording = true;
-    console.log('🎥 Grabación técnica de pantalla y audio iniciada.');
+    console.log('🎥 Grabación técnica de pantalla, cámara facial y audio iniciada.');
     return true;
   },
 
@@ -942,13 +974,19 @@ const ScreenAudioRecorder = {
       this.screenStream.getTracks().forEach(t => t.stop());
       this.screenStream = null;
     }
-    if (this.audioStream) {
-      this.audioStream.getTracks().forEach(t => t.stop());
-      this.audioStream = null;
+    if (this.cameraStream) {
+      this.cameraStream.getTracks().forEach(t => t.stop());
+      this.cameraStream = null;
     }
     if (this.combinedStream) {
       this.combinedStream.getTracks().forEach(t => t.stop());
       this.combinedStream = null;
+    }
+    if (DOM.floatingCameraBubble) {
+      DOM.floatingCameraBubble.classList.add('hidden');
+    }
+    if (DOM.webcamLivePreview) {
+      DOM.webcamLivePreview.srcObject = null;
     }
   },
 
@@ -1674,6 +1712,17 @@ async function openResponsesModal(cedula) {
         }
       };
     }
+
+    // Botón de alternar visualización (mostrar/ocultar) del reproductor
+    if (DOM.btnToggleRecordingCollapse && DOM.recordingPlayerWrapper) {
+      DOM.recordingPlayerWrapper.classList.remove('collapsed');
+      DOM.btnToggleRecordingCollapse.textContent = 'Ocultar Video';
+      DOM.btnToggleRecordingCollapse.onclick = () => {
+        DOM.recordingPlayerWrapper.classList.toggle('collapsed');
+        const isCollapsed = DOM.recordingPlayerWrapper.classList.contains('collapsed');
+        DOM.btnToggleRecordingCollapse.textContent = isCollapsed ? 'Mostrar Video' : 'Ocultar Video';
+      };
+    }
   } else {
     if (DOM.modalRecordingCard) DOM.modalRecordingCard.classList.add('hidden');
     if (DOM.modalRecordingPlayer) {
@@ -1681,6 +1730,9 @@ async function openResponsesModal(cedula) {
       DOM.modalRecordingPlayer.src = '';
     }
   }
+
+  const scrollContainer = document.getElementById('modalResponsesScrollContainer');
+  if (scrollContainer) scrollContainer.scrollTop = 0;
 
   DOM.modalResponsesContent.innerHTML = `
     <div class="text-center py-12 text-muted">
