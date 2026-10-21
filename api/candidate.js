@@ -87,17 +87,82 @@ module.exports = async (req, res) => {
       }
 
       // Si es un candidato nuevo: registrarlo en la base de datos
-      const cleanNombre = String(nombre || '').trim();
-      if (!cleanNombre) {
-        return res.status(400).json({ error: 'Nombre completo es obligatorio.' });
+      const cleanNombre = String(nombre || '').replace(/\s+/g, ' ').trim();
+      if (!cleanNombre || cleanNombre.length < 3) {
+        return res.status(400).json({ error: 'Nombres y apellidos completos son obligatorios.' });
+      }
+
+      const cleanCorreo = String(meta.correo || '').trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!cleanCorreo || !emailRegex.test(cleanCorreo)) {
+        return res.status(400).json({ error: 'El correo electrónico ingresado no es válido.' });
+      }
+
+      const cleanBirthDate = String(meta.fecha_nacimiento || '').trim();
+      if (!cleanBirthDate) {
+        return res.status(400).json({ error: 'La fecha de nacimiento es obligatoria.' });
+      }
+
+      // Validar fecha de nacimiento estricta (no futura y mínimo 18 años cumplidos)
+      const birth = new Date(cleanBirthDate + 'T00:00:00');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (isNaN(birth.getTime())) {
+        return res.status(400).json({ error: 'La fecha de nacimiento no tiene un formato válido.' });
+      }
+
+      if (birth > today) {
+        return res.status(400).json({ error: 'La fecha de nacimiento no puede ser una fecha futura (mañana o posterior).' });
+      }
+
+      let age = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+
+      if (age < 18) {
+        return res.status(400).json({
+          error: `Debe ser mayor de edad (mínimo 18 años cumplidos) para participar en el proceso de selección técnica. Edad calculada: ${age} años.`
+        });
+      }
+
+      if (age > 95) {
+        return res.status(400).json({
+          error: 'Por favor ingrese una fecha de nacimiento válida (la edad no puede ser superior a 95 años).'
+        });
+      }
+
+      // Validación de duplicidad en la base de datos de Supabase
+      // 1. Correo electrónico único en la convocatoria
+      const existingByEmail = await querySupabaseAdmin(
+        `pruebas_nomina?correo=ilike.${encodeURIComponent(cleanCorreo)}&cedula=neq.${encodeURIComponent(cleanCedula)}`
+      );
+      if (Array.isArray(existingByEmail) && existingByEmail.length > 0) {
+        return res.status(409).json({
+          error: 'El correo electrónico ya se encuentra registrado por otro candidato en la plataforma.',
+          field: 'correo'
+        });
+      }
+
+      // 2. Nombres y apellidos únicos en la convocatoria
+      const existingByName = await querySupabaseAdmin(
+        `pruebas_nomina?nombre=ilike.${encodeURIComponent(cleanNombre)}&cedula=neq.${encodeURIComponent(cleanCedula)}`
+      );
+      if (Array.isArray(existingByName) && existingByName.length > 0) {
+        return res.status(409).json({
+          error: 'Los nombres y apellidos ya se encuentran registrados en la convocatoria con otro número de documento.',
+          field: 'nombre'
+        });
       }
 
       const initialRespuestas = {
         _candidato: {
           nombres: meta.nombres || '',
           apellidos: meta.apellidos || '',
-          correo: meta.correo || '',
-          fecha_nacimiento: meta.fecha_nacimiento || '',
+          correo: cleanCorreo,
+          fecha_nacimiento: cleanBirthDate,
           userAgent: req.headers['user-agent'] || '',
           ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || ''
         },
@@ -107,6 +172,7 @@ module.exports = async (req, res) => {
       const newRecord = {
         nombre: cleanNombre,
         cedula: cleanCedula,
+        correo: cleanCorreo,
         estado: 'EN_CURSO',
         motivo_bloqueo: null,
         respuestas: initialRespuestas,
@@ -115,10 +181,22 @@ module.exports = async (req, res) => {
         autorizacion_fecha: new Date().toISOString()
       };
 
-      const inserted = await querySupabaseAdmin('pruebas_nomina', {
-        method: 'POST',
-        body: newRecord
-      });
+      try {
+        await querySupabaseAdmin('pruebas_nomina', {
+          method: 'POST',
+          body: newRecord
+        });
+      } catch (insertErr) {
+        // En caso de colisión de índice único en base de datos
+        const errMsg = String(insertErr.message || '');
+        if (errMsg.includes('pruebas_nomina_cedula_key') || errMsg.includes('duplicate key value')) {
+          return res.status(409).json({
+            error: 'Este número de cédula o correo electrónico ya fue registrado previamente.',
+            field: 'cedula'
+          });
+        }
+        throw insertErr;
+      }
 
       return res.status(200).json({
         status: 'EN_CURSO',

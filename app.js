@@ -313,14 +313,19 @@ const DatabaseService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, ...payload })
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        return await res.json();
+        return data;
       }
       if (res.status === 404) {
-        return null; // Modo fallback sin servidor local
+        return null; // Endpoint no desplegado o entorno puramente estático
       }
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.error || `Error ${res.status}`);
+      return {
+        _error: true,
+        status: res.status,
+        error: data.error || `Error del servidor (${res.status})`,
+        field: data.field
+      };
     } catch (err) {
       console.warn(`[ApiService] /api/candidate (${action}) fallback local:`, err);
       return null;
@@ -1263,9 +1268,53 @@ async function handleCandidateLogin(e) {
     return;
   }
 
-  // Validación de Fecha de Nacimiento
+  // Validación de Fecha de Nacimiento (Estricta: no futura y mínimo 18 años cumplidos)
   if (!birthDate) {
     showToast('Validación', 'Por favor seleccione su fecha de nacimiento.', 'warning');
+    if (DOM.candidateBirthDate) DOM.candidateBirthDate.focus();
+    return;
+  }
+
+  const birth = new Date(birthDate + 'T00:00:00');
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (isNaN(birth.getTime())) {
+    showToast('Fecha Inválida', 'Por favor ingrese una fecha de nacimiento válida.', 'warning');
+    if (DOM.candidateBirthDate) DOM.candidateBirthDate.focus();
+    return;
+  }
+
+  if (birth > today) {
+    showToast('Fecha No Permitida', 'La fecha de nacimiento no puede ser una fecha futura (mañana o posterior).', 'error');
+    if (DOM.candidateBirthDate) {
+      DOM.candidateBirthDate.focus();
+      DOM.candidateBirthDate.classList.add('input-error');
+    }
+    return;
+  }
+
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  if (age < 18) {
+    showToast(
+      'Mayoría de Edad Requerida',
+      `Debe ser mayor de edad (mínimo 18 años cumplidos) para participar en la prueba técnica laboral. Edad calculada: ${age} años.`,
+      'error'
+    );
+    if (DOM.candidateBirthDate) {
+      DOM.candidateBirthDate.focus();
+      DOM.candidateBirthDate.classList.add('input-error');
+    }
+    return;
+  }
+
+  if (age > 95) {
+    showToast('Fecha No Válida', 'Por favor ingrese una fecha de nacimiento válida (la edad no puede ser superior a 95 años).', 'warning');
     if (DOM.candidateBirthDate) DOM.candidateBirthDate.focus();
     return;
   }
@@ -1305,12 +1354,13 @@ async function handleCandidateLogin(e) {
     return;
   }
 
-  const fullName = `${nombres} ${apellidos}`;
+  const cleanNombreTrimmed = `${nombres} ${apellidos}`.replace(/\s+/g, ' ').trim();
+  const fullName = cleanNombreTrimmed;
   const candidateInfo = {
     nombres,
     apellidos,
     cedula,
-    correo: email,
+    correo: email.toLowerCase(),
     fecha_nacimiento: birthDate,
     terminos_aceptados: true,
     autorizacion_datos: true,
@@ -1341,6 +1391,22 @@ async function handleCandidateLogin(e) {
     });
 
     if (serverCheck) {
+      // Manejo de errores de validación de negocio (duplicados de correo/nombre, edad < 18, etc.)
+      if (serverCheck._error) {
+        showToast('Registro No Permitido', serverCheck.error, 'error');
+        if (serverCheck.field === 'correo' && DOM.candidateEmail) {
+          DOM.candidateEmail.focus();
+          DOM.candidateEmail.classList.add('input-error');
+        } else if (serverCheck.field === 'nombre' && DOM.candidateNombres) {
+          DOM.candidateNombres.focus();
+          DOM.candidateNombres.classList.add('input-error');
+        } else if (serverCheck.field === 'cedula' && DOM.candidateCedula) {
+          DOM.candidateCedula.focus();
+          DOM.candidateCedula.classList.add('input-error');
+        }
+        return;
+      }
+
       if (serverCheck.status === 'BLOQUEADO') {
         sessionStorage.setItem('LP_BLOCKED_CEDULA', serverCheck.cedula);
         sessionStorage.setItem('LP_BLOCKED_REASON', serverCheck.motivo);
@@ -1383,6 +1449,37 @@ async function handleCandidateLogin(e) {
     }
 
     // Fallback local si la API estuviera desconectada
+    // Validar duplicidad en fallback
+    const allLocal = await DatabaseService.getAllCandidates();
+    const cleanMail = email.toLowerCase();
+    const cleanNormName = fullName.toLowerCase().replace(/\s+/g, ' ');
+
+    const dupEmail = (allLocal || []).find(c => {
+      const cMail = (c.correo || (c.respuestas && c.respuestas._candidato && c.respuestas._candidato.correo) || '').toLowerCase();
+      return c.cedula !== cedula && cMail === cleanMail;
+    });
+    if (dupEmail) {
+      showToast('Correo Ya Registrado', 'El correo electrónico ya se encuentra registrado por otro candidato en la plataforma.', 'error');
+      if (DOM.candidateEmail) {
+        DOM.candidateEmail.focus();
+        DOM.candidateEmail.classList.add('input-error');
+      }
+      return;
+    }
+
+    const dupName = (allLocal || []).find(c => {
+      const cName = (c.nombre || '').toLowerCase().replace(/\s+/g, ' ');
+      return c.cedula !== cedula && cName === cleanNormName;
+    });
+    if (dupName) {
+      showToast('Nombre Ya Registrado', 'Los nombres y apellidos ya se encuentran registrados en la convocatoria con otro número de documento.', 'error');
+      if (DOM.candidateNombres) {
+        DOM.candidateNombres.focus();
+        DOM.candidateNombres.classList.add('input-error');
+      }
+      return;
+    }
+
     const existing = await DatabaseService.getByCedula(cedula);
 
     if (existing) {
@@ -1418,6 +1515,7 @@ async function handleCandidateLogin(e) {
     const newRecord = {
       nombre: fullName,
       cedula: cedula,
+      correo: cleanMail,
       estado: 'EN_CURSO',
       motivo_bloqueo: null,
       respuestas: { _candidato: candidateInfo },
@@ -1667,17 +1765,67 @@ async function openResponsesModal(cedula) {
   AppState.currentGradingCedula = cedula;
 
   const candidateMeta = (candidate.respuestas && candidate.respuestas._candidato) ? candidate.respuestas._candidato : {};
-  const email = candidateMeta.correo || 'No registrado';
+  const email = candidateMeta.correo || candidate.correo || 'No registrado';
   const birthDate = candidateMeta.fecha_nacimiento || 'No registrada';
+
+  let ageText = '';
+  if (birthDate && birthDate !== 'No registrada') {
+    const bDate = new Date(birthDate + 'T00:00:00');
+    if (!isNaN(bDate.getTime())) {
+      const today = new Date();
+      let age = today.getFullYear() - bDate.getFullYear();
+      const m = today.getMonth() - bDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < bDate.getDate())) age--;
+      ageText = ` (${age} años)`;
+    }
+  }
 
   DOM.modalCandidateNameTitle.textContent = candidate.nombre;
   DOM.modalCandidateMetaInfo.innerHTML = `
     <strong>C.C.:</strong> ${escapeHtml(candidate.cedula)} &nbsp;|&nbsp; 
     <strong>Correo:</strong> ${escapeHtml(email)} &nbsp;|&nbsp; 
-    <strong>F. Nacimiento:</strong> ${escapeHtml(birthDate)} &nbsp;|&nbsp; 
+    <strong>F. Nacimiento:</strong> ${escapeHtml(birthDate)}${ageText} &nbsp;|&nbsp; 
     <strong>Estado:</strong> ${escapeHtml(candidate.estado)} &nbsp;|&nbsp; 
     <strong>Fecha:</strong> ${formatDate(candidate.fecha)}
   `;
+
+  // Poblar Ficha Ejecutiva Oficial para Impresión y PDF
+  const printDossier = document.getElementById('printDossierGrid');
+  if (printDossier) {
+    printDossier.innerHTML = `
+      <div class="dossier-card">
+        <div class="dossier-card-title">DATOS DEL CANDIDATO</div>
+        <div class="dossier-grid-inner">
+          <div class="dossier-row"><span class="dossier-label">Nombre Completo:</span> <strong class="dossier-val-name">${escapeHtml(candidate.nombre)}</strong></div>
+          <div class="dossier-row"><span class="dossier-label">Cédula de Ciudadanía:</span> <strong class="dossier-val">${escapeHtml(candidate.cedula)}</strong></div>
+          <div class="dossier-row"><span class="dossier-label">Correo Electrónico:</span> <span class="dossier-val">${escapeHtml(email)}</span></div>
+          <div class="dossier-row"><span class="dossier-label">Fecha de Nacimiento:</span> <span class="dossier-val">${escapeHtml(birthDate)}${ageText}</span></div>
+        </div>
+      </div>
+      <div class="dossier-card">
+        <div class="dossier-card-title">REGISTRO DE LA EVALUACIÓN</div>
+        <div class="dossier-grid-inner">
+          <div class="dossier-row"><span class="dossier-label">Fecha y Hora de Examen:</span> <span class="dossier-val">${formatDate(candidate.fecha)}</span></div>
+          <div class="dossier-row"><span class="dossier-label">Estado de la Prueba:</span> <span class="dossier-val-badge ${candidate.estado.toLowerCase()}">${escapeHtml(candidate.estado)}</span></div>
+          <div class="dossier-row"><span class="dossier-label">Supervisión y Seguridad:</span> <span class="dossier-val">Grabación de pantalla, audio y cámara facial (Ley 1581/2012)</span></div>
+          <div class="dossier-row"><span class="dossier-label">Evaluador(a) Oficial:</span> <span class="dossier-val">Dirección de Talento Humano · Paola</span></div>
+        </div>
+      </div>
+      <div class="dossier-card dossier-card-score">
+        <div class="dossier-card-title">RESULTADO Y DICTAMEN FINAL</div>
+        <div class="dossier-score-box">
+          <div class="dossier-score-percentage" id="printScoreValue">Calculando...</div>
+          <div class="dossier-score-decision" id="printScoreStatus">Pendiente de Calificación</div>
+          <div class="dossier-score-note">Umbral mínimo de aprobación: 75% (29 / 38 preguntas)</div>
+        </div>
+      </div>
+    `;
+  }
+
+  const printGenDate = document.getElementById('printGeneratedDate');
+  if (printGenDate) {
+    printGenDate.textContent = `Informe oficial emitido el ${new Date().toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' })}`;
+  }
 
   // Configuración de la grabación de pantalla y audio (Auditoría Ley 1581)
   if (candidate.grabacion_url) {
@@ -1786,17 +1934,34 @@ async function openResponsesModal(cedula) {
       sections[sectionTitle].forEach(item => {
         const hasAnswer = item.answer && item.answer.trim().length > 0;
         const g = item.grade;
+        let gradeTagClass = 'pending';
+        let gradeTagText = 'Sin calificar (0 / 1.0)';
+        if (g === 1) {
+          gradeTagClass = 'correct';
+          gradeTagText = '✅ Correcta (1.0 / 1.0)';
+        } else if (g === 0.5) {
+          gradeTagClass = 'partial';
+          gradeTagText = '⚠️ Parcial (0.5 / 1.0)';
+        } else if (g === 0) {
+          gradeTagClass = 'wrong';
+          gradeTagText = '❌ Incorrecta (0.0 / 1.0)';
+        }
+
         html += `
           <div class="response-item-row" data-qkey="${item.key}">
-            <div class="response-q-title">${escapeHtml(item.title)}</div>
+            <div class="response-q-title-row">
+              <span class="response-q-title">${escapeHtml(item.title)}</span>
+              <span class="print-grade-tag ${gradeTagClass}">${gradeTagText}</span>
+            </div>
             <div class="response-q-answer ${hasAnswer ? '' : 'empty'}">
-              ${hasAnswer ? escapeHtml(item.answer) : '[Sin respuesta registrada por el candidato]'}
+              <span class="answer-badge-label">Respuesta del Candidato:</span>
+              <div class="answer-text-content">${hasAnswer ? escapeHtml(item.answer) : '[Sin respuesta registrada por el candidato]'}</div>
             </div>
             <div class="answer-key-guide-box ${AppState.showAnswerKeyInModal ? '' : 'hidden'}">
-              <strong>💡 Respuesta Esperada (Solucionario Oficial Confidencial):</strong>
+              <strong>💡 Criterio / Solucionario Oficial Confidencial:</strong>
               ${escapeHtml(item.guide)}
             </div>
-            <div class="question-grade-controls" data-qkey="${item.key}">
+            <div class="question-grade-controls no-print" data-qkey="${item.key}">
               <span class="question-grade-label">Calificar pregunta:</span>
               <button type="button" class="btn-grade-opt grade-correct ${g === 1 ? 'active' : ''}" data-qkey="${item.key}" data-score="1">✅ Correcta (1.0)</button>
               <button type="button" class="btn-grade-opt grade-partial ${g === 0.5 ? 'active' : ''}" data-qkey="${item.key}" data-score="0.5">⚠️ Parcial (0.5)</button>
@@ -1817,14 +1982,32 @@ async function openResponsesModal(cedula) {
         const qKey = btn.getAttribute('data-qkey');
         const scoreVal = parseFloat(btn.getAttribute('data-score'));
         const parent = btn.closest('.question-grade-controls');
+        const row = btn.closest('.response-item-row');
+        const printTag = row ? row.querySelector('.print-grade-tag') : null;
 
         if (btn.classList.contains('active')) {
           btn.classList.remove('active');
           delete activeGrades[qKey];
+          if (printTag) {
+            printTag.className = 'print-grade-tag pending';
+            printTag.textContent = 'Sin calificar (0 / 1.0)';
+          }
         } else {
           parent.querySelectorAll('.btn-grade-opt').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           activeGrades[qKey] = scoreVal;
+          if (printTag) {
+            if (scoreVal === 1) {
+              printTag.className = 'print-grade-tag correct';
+              printTag.textContent = '✅ Correcta (1.0 / 1.0)';
+            } else if (scoreVal === 0.5) {
+              printTag.className = 'print-grade-tag partial';
+              printTag.textContent = '⚠️ Parcial (0.5 / 1.0)';
+            } else {
+              printTag.className = 'print-grade-tag wrong';
+              printTag.textContent = '❌ Incorrecta (0.0 / 1.0)';
+            }
+          }
         }
 
         updateModalGradingSummary(activeGrades);
@@ -1852,15 +2035,36 @@ async function autoGradeCurrentCandidate() {
 }
 
 function updateModalGradingSummary(gradesMap) {
-  if (!DOM.liveGradingScore) return;
   const keys = Object.keys(gradesMap || {});
-  if (keys.length === 0) {
-    DOM.liveGradingScore.textContent = 'Sin calificar (0 / 38)';
-    return;
-  }
   const totalPoints = keys.reduce((acc, k) => acc + (Number(gradesMap[k]) || 0), 0);
   const percentage = Math.round((totalPoints / TOTAL_QUESTIONS_COUNT) * 100);
-  DOM.liveGradingScore.textContent = `${percentage}% (${totalPoints} / ${TOTAL_QUESTIONS_COUNT} pts · ${keys.length} evaluadas)`;
+
+  if (DOM.liveGradingScore) {
+    if (keys.length === 0) {
+      DOM.liveGradingScore.textContent = 'Sin calificar (0 / 38)';
+    } else {
+      DOM.liveGradingScore.textContent = `${percentage}% (${totalPoints} / ${TOTAL_QUESTIONS_COUNT} pts · ${keys.length} evaluadas)`;
+    }
+  }
+
+  // Actualizar también la Ficha de Impresión Oficial (PDF)
+  const printScoreVal = document.getElementById('printScoreValue');
+  const printScoreStatus = document.getElementById('printScoreStatus');
+  if (printScoreVal) {
+    printScoreVal.textContent = `${percentage}% (${totalPoints} / ${TOTAL_QUESTIONS_COUNT} pts)`;
+  }
+  if (printScoreStatus) {
+    if (percentage >= 75) {
+      printScoreStatus.className = 'dossier-score-decision approved';
+      printScoreStatus.textContent = '✅ APROBADO (Supera el umbral del 75%)';
+    } else if (keys.length === TOTAL_QUESTIONS_COUNT) {
+      printScoreStatus.className = 'dossier-score-decision rejected';
+      printScoreStatus.textContent = '❌ NO APROBADO (Inferior al 75%)';
+    } else {
+      printScoreStatus.className = 'dossier-score-decision in-progress';
+      printScoreStatus.textContent = `⚠️ EN EVALUACIÓN (${keys.length}/38 calif.)`;
+    }
+  }
 }
 
 async function saveCandidateGrading() {
@@ -2164,7 +2368,13 @@ function initApp() {
     });
   });
   if (DOM.btnExportResponses) {
-    DOM.btnExportResponses.addEventListener('click', () => window.print());
+    DOM.btnExportResponses.addEventListener('click', () => {
+      const printDateEl = document.getElementById('printGeneratedDate');
+      if (printDateEl) {
+        printDateEl.textContent = `Informe oficial emitido el ${new Date().toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' })}`;
+      }
+      window.print();
+    });
   }
   if (DOM.btnAutoGradeCandidate) {
     DOM.btnAutoGradeCandidate.addEventListener('click', autoGradeCurrentCandidate);
@@ -2245,6 +2455,9 @@ function initApp() {
     DOM.viewIdentification.classList.remove('hidden');
   }
 
+  // Restricciones lógicas de fecha de nacimiento (mínimo 18 años, prohibido fechas futuras)
+  initDateConstraints();
+
   // Listeners de Login Candidato
   if (DOM.candidateLoginForm) {
     DOM.candidateLoginForm.addEventListener('submit', handleCandidateLogin);
@@ -2319,6 +2532,30 @@ function initApp() {
   // Botón de Enviar Examen
   if (DOM.btnSubmitExam) {
     DOM.btnSubmitExam.addEventListener('click', () => handleSubmitExam(false));
+  }
+}
+
+// ==============================================================================
+// 15. RESTRICCIONES LÓGICAS DE FECHA DE NACIMIENTO
+// Evita fechas futuras y exige mayoría de edad (mínimo 18 años) en el selector nativo
+// ==============================================================================
+function initDateConstraints() {
+  const birthInput = (DOM && DOM.candidateBirthDate) || document.getElementById('candidateBirthDate');
+  if (birthInput) {
+    const today = new Date();
+    // Fecha máxima permitida: hoy menos 18 años (mayoría de edad estricta en Colombia)
+    const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+    const yyyyMax = maxDate.getFullYear();
+    const mmMax = String(maxDate.getMonth() + 1).padStart(2, '0');
+    const ddMax = String(maxDate.getDate()).padStart(2, '0');
+    birthInput.max = `${yyyyMax}-${mmMax}-${ddMax}`;
+
+    // Fecha mínima permitida: hoy menos 95 años
+    const minDate = new Date(today.getFullYear() - 95, today.getMonth(), today.getDate());
+    const yyyyMin = minDate.getFullYear();
+    const mmMin = String(minDate.getMonth() + 1).padStart(2, '0');
+    const ddMin = String(minDate.getDate()).padStart(2, '0');
+    birthInput.min = `${yyyyMin}-${mmMin}-${ddMin}`;
   }
 }
 

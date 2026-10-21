@@ -148,8 +148,9 @@
                 <span class="input-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </span>
-                <input type="date" id="candidateBirthDate" class="form-control" required>
+                <input type="date" id="candidateBirthDate" class="form-control" required autocomplete="bday">
               </div>
+              <span class="form-hint">Mínimo 18 años cumplidos. Fechas futuras deshabilitadas.</span>
             </div>
           </div>
 
@@ -1130,6 +1131,27 @@
   <!-- ========================================================================= -->
   <div id="responsesModal" class="modal-overlay hidden">
     <div class="modal-container modal-lg">
+      <!-- ===================================================================== -->
+      <!-- ENCABEZADO FORMAL PARA IMPRESIÓN Y PDF (SOLO VISIBLE EN @MEDIA PRINT)  -->
+      <!-- ===================================================================== -->
+      <div id="printOfficialHeader" class="print-official-header">
+        <div class="print-header-top">
+          <div class="print-logo-box">
+            <img src="assets/logo-original.png" alt="LOZADA & PARTNERS SAS" class="print-header-logo">
+          </div>
+          <div class="print-header-titles">
+            <h1 class="print-company-name">LOZADA &amp; PARTNERS SAS</h1>
+            <h2 class="print-test-name">INFORME OFICIAL DE RESULTADOS · PRUEBA TÉCNICA ESPECIALISTA DE NÓMINA</h2>
+            <div class="print-security-pill">DOCUMENTO AUDITABLE DE EVALUACIÓN Y SELECCIÓN LABORAL · TALENTO HUMANO</div>
+          </div>
+        </div>
+
+        <!-- Ficha de Datos del Candidato y Evaluación -->
+        <div class="print-dossier-grid" id="printDossierGrid">
+          <!-- Generado dinámicamente en app.js -->
+        </div>
+      </div>
+
       <div class="modal-header">
         <div>
           <span class="badge-role">Revisión Técnica y Calificación de Respuestas</span>
@@ -1200,8 +1222,20 @@
         </div>
       </div>
 
+      <!-- PIE DE PÁGINA OFICIAL PARA IMPRESIÓN Y PDF -->
+      <div id="printOfficialFooter" class="print-official-footer">
+        <div class="print-footer-content">
+          <span><strong>LOZADA &amp; PARTNERS SAS</strong> · Convocatoria Especialista de Nómina</span>
+          <span>Supervisión y custodia conforme a la <strong>Ley 1581 de 2012</strong></span>
+          <span class="print-generated-date" id="printGeneratedDate"></span>
+        </div>
+      </div>
+
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btnExportResponses">Imprimir / Guardar PDF</button>
+        <button type="button" class="btn btn-secondary" id="btnExportResponses">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          <span>Imprimir / Guardar PDF</span>
+        </button>
         <button type="button" class="btn btn-primary" id="btnDoneViewingResponses">Cerrar</button>
       </div>
     </div>

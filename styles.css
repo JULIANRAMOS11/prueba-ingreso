@@ -2413,3 +2413,485 @@ h1, h2, h3, h4, h5, h6 {
   transform: scaleX(-1); /* Efecto espejo natural para el candidato */
 }
 
+/* Estado de error en inputs */
+.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* ========================================================================== */
+/* ESTILOS DE INFORME Y ETIQUETAS DE EVALUACIÓN (PANTALLA Y PDF)             */
+/* ========================================================================== */
+.print-official-header,
+.print-official-footer {
+  display: none;
+}
+
+.response-q-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.print-grade-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+.print-grade-tag.correct {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.print-grade-tag.partial {
+  background: #fef9c3;
+  color: #a16207;
+  border-color: #fde047;
+}
+
+.print-grade-tag.wrong {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.print-grade-tag.pending {
+  background: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+.answer-badge-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+
+/* ========================================================================== */
+/* REGLAS ESTRICTAS DE IMPRESIÓN Y EXPORTACIÓN A PDF (@media print)          */
+/* Permite que el examen completo pagine sin cortes ni truncamiento          */
+/* ========================================================================== */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 12mm 10mm 15mm 10mm;
+  }
+
+  /* 1. Restablecer el flujo global del documento */
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt !important;
+    line-height: 1.35 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 2. Ocultar todos los elementos ajenos al informe de respuestas */
+  .fullscreen-video-bg,
+  .toast-notification,
+  .floating-camera-bubble,
+  #viewIdentification,
+  #viewExam,
+  #viewBlocked,
+  #viewFinished,
+  #viewAdmin,
+  #adminLoginModal,
+  #confirmResetModal,
+  .modal-grading-toolbar,
+  .modal-footer,
+  .btn-close,
+  #modalRecordingCard,
+  .question-grade-controls,
+  .no-print {
+    display: none !important;
+  }
+
+  /* 3. Liberar el contenedor del modal para ocupar todo el papel */
+  #responsesModal.modal-overlay {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  #responsesModal .modal-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #responsesModal .modal-header {
+    display: none !important; /* Reemplazado por el encabezado formal de informe */
+  }
+
+  #responsesModal .modal-body,
+  #responsesModal #modalResponsesScrollContainer,
+  #responsesModal #modalResponsesContent {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 4. Encabezado Oficial de Impresión */
+  .print-official-header {
+    display: block !important;
+    margin-bottom: 14px !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .print-header-top {
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 2px solid #0f2744 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .print-header-logo {
+    width: 90px !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+
+  .print-header-titles {
+    flex: 1 !important;
+  }
+
+  .print-company-name {
+    font-size: 15pt !important;
+    font-weight: 900 !important;
+    color: #0f2744 !important;
+    margin: 0 0 2px 0 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .print-test-name {
+    font-size: 11pt !important;
+    font-weight: 700 !important;
+    color: #1e3a8a !important;
+    margin: 0 0 4px 0 !important;
+  }
+
+  .print-security-pill {
+    display: inline-block !important;
+    font-size: 7pt !important;
+    font-weight: 800 !important;
+    background: #0f2744 !important;
+    color: #ffffff !important;
+    padding: 2px 8px !important;
+    border-radius: 3px !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+  }
+
+  /* 5. Ficha Ejecutiva del Candidato en Impresión */
+  .print-dossier-grid {
+    display: grid !important;
+    grid-template-columns: 1.15fr 1.15fr 0.95fr !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .dossier-card {
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 5px !important;
+    padding: 8px 10px !important;
+    background: #f8fafc !important;
+  }
+
+  .dossier-card-title {
+    font-size: 7.5pt !important;
+    font-weight: 800 !important;
+    color: #0f2744 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding-bottom: 3px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .dossier-row {
+    font-size: 8pt !important;
+    margin-bottom: 3px !important;
+    line-height: 1.25 !important;
+  }
+
+  .dossier-label {
+    font-weight: 600 !important;
+    color: #475569 !important;
+    margin-right: 3px !important;
+  }
+
+  .dossier-val-name {
+    font-size: 9pt !important;
+    color: #0f172a !important;
+  }
+
+  .dossier-val-badge {
+    display: inline-block !important;
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+    padding: 1px 6px !important;
+    border-radius: 3px !important;
+    text-transform: uppercase !important;
+  }
+
+  .dossier-val-badge.finalizado {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+  }
+
+  .dossier-val-badge.en_curso {
+    background: #dbeafe !important;
+    color: #1e40af !important;
+  }
+
+  .dossier-val-badge.bloqueado {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+  }
+
+  .dossier-score-box {
+    text-align: center !important;
+    padding: 2px 0 !important;
+  }
+
+  .dossier-score-percentage {
+    font-size: 15pt !important;
+    font-weight: 900 !important;
+    color: #0f2744 !important;
+    line-height: 1.1 !important;
+  }
+
+  .dossier-score-decision {
+    display: inline-block !important;
+    font-size: 7.5pt !important;
+    font-weight: 800 !important;
+    padding: 2px 8px !important;
+    border-radius: 3px !important;
+    margin: 4px 0 !important;
+    text-transform: uppercase !important;
+  }
+
+  .dossier-score-decision.approved {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #86efac !important;
+  }
+
+  .dossier-score-decision.rejected {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #fca5a5 !important;
+  }
+
+  .dossier-score-decision.in-progress {
+    background: #fef9c3 !important;
+    color: #a16207 !important;
+    border: 1px solid #fde047 !important;
+  }
+
+  .dossier-score-note {
+    font-size: 7pt !important;
+    color: #64748b !important;
+    line-height: 1.2 !important;
+  }
+
+  /* 6. Secciones y Preguntas sin truncamiento */
+  .response-section-block {
+    page-break-before: auto !important;
+    page-break-after: auto !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    margin-bottom: 14px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  .response-section-header {
+    background: #0f2744 !important;
+    color: #ffffff !important;
+    font-size: 10.5pt !important;
+    font-weight: 700 !important;
+    padding: 7px 12px !important;
+    border-top-left-radius: 5px !important;
+    border-top-right-radius: 5px !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .response-item-row {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 9px 12px !important;
+    background: #ffffff !important;
+  }
+
+  .response-item-row:last-child {
+    border-bottom: none !important;
+  }
+
+  .response-q-title-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    margin-bottom: 4px !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .response-q-title {
+    font-size: 9.5pt !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    line-height: 1.3 !important;
+  }
+
+  .print-grade-tag {
+    font-size: 8pt !important;
+    font-weight: 700 !important;
+    padding: 2px 7px !important;
+    border-radius: 3px !important;
+    border: 1px solid #cbd5e1 !important;
+    white-space: nowrap !important;
+  }
+
+  .print-grade-tag.correct {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border-color: #86efac !important;
+  }
+
+  .print-grade-tag.partial {
+    background: #fef9c3 !important;
+    color: #a16207 !important;
+    border-color: #fde047 !important;
+  }
+
+  .print-grade-tag.wrong {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fca5a5 !important;
+  }
+
+  .print-grade-tag.pending {
+    background: #f1f5f9 !important;
+    color: #64748b !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .response-q-answer {
+    font-size: 9pt !important;
+    color: #0f172a !important;
+    background: #f8fafc !important;
+    border-left: 3px solid #2563eb !important;
+    padding: 6px 10px !important;
+    border-radius: 4px !important;
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+  }
+
+  .response-q-answer.empty {
+    color: #64748b !important;
+    font-style: italic !important;
+    border-left-color: #94a3b8 !important;
+  }
+
+  .answer-badge-label {
+    display: block !important;
+    font-size: 7pt !important;
+    text-transform: uppercase !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    margin-bottom: 2px !important;
+  }
+
+  .answer-key-guide-box {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    font-size: 8pt !important;
+    background: #eff6ff !important;
+    border: 1px dashed #93c5fd !important;
+    color: #1e3a8a !important;
+    padding: 5px 8px !important;
+    border-radius: 4px !important;
+    margin-top: 4px !important;
+  }
+
+  /* 7. Pie de Página Oficial */
+  .print-official-footer {
+    display: block !important;
+    margin-top: 14px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid #cbd5e1 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-footer-content {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    font-size: 7.5pt !important;
+    color: #64748b !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+
+
