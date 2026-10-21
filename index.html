@@ -171,6 +171,10 @@
                 <span><strong>Tiempo límite inflexible:</strong> Dispone de exactamente <strong>1 hora y 30 minutos (90 minutos)</strong> continuos. Un cronómetro en vivo marcará el tiempo y al expirar sus respuestas se enviarán automáticamente.</span>
               </li>
               <li>
+                <span class="rule-icon">🎥</span>
+                <span><strong>Grabación obligatoria de pantalla y audio:</strong> Por protocolo de integridad y transparencia, durante toda la evaluación se registrará en video su pantalla completa y el audio ambiental capturado por su micrófono. <strong>Detener la compartición de pantalla en cualquier momento anulará el examen en el acto.</strong></span>
+              </li>
+              <li>
                 <span class="rule-icon">🚫</span>
                 <span><strong>Clic derecho ESTRICTAMENTE PROHIBIDO:</strong> El uso del clic derecho y menús contextuales está totalmente deshabilitado y bloqueado. Intentar abrirlo dentro del examen será registrado como intento de fraude y anulará su prueba de inmediato.</span>
               </li>
@@ -188,13 +192,27 @@
               </li>
             </ul>
 
-            <!-- CASILLA PARA TACHAR / MARCAR (ACUERDO OBLIGATORIO) -->
+            <!-- CASILLA 1: NORMAS DE SEGURIDAD Y SUPERVISIÓN -->
             <div class="security-ack-box">
               <label for="acceptSupervisionCheck" class="security-ack-label">
                 <input type="checkbox" id="acceptSupervisionCheck" required class="checkbox-custom ack-checkbox">
                 <span class="ack-text">
                   <span class="ack-title">HE LEÍDO, COMPRENDO Y ACEPTO TODAS LAS CONDICIONES ANTERIORES</span>
-                  <span class="ack-desc">Certifico que leí atentamente las normas de seguridad (incluyendo la <strong>prohibición estricta de clic derecho</strong>, tiempo límite de 90 minutos y permanencia en pantalla). Entiendo y acepto que cualquier infracción anulará mi prueba en el acto, sin posibilidad de reclamos posteriores alegando desconocimiento.</span>
+                  <span class="ack-desc">Certifico que leí atentamente las normas de seguridad (incluyendo la prohibición de clic derecho, tiempo límite de 90 minutos y permanencia en pantalla). Entiendo y acepto que cualquier infracción anulará mi prueba en el acto, sin posibilidad de reclamos posteriores alegando desconocimiento.</span>
+                </span>
+              </label>
+            </div>
+
+            <!-- CASILLA 2: CONSENTIMIENTO LEY 1581 DE 2012 (HABEAS DATA Y DATOS BIOMÉTRICOS/AUDIO/PANTALLA) -->
+            <div class="security-ack-box legal-data-box">
+              <label for="acceptDataProtectionCheck" class="security-ack-label">
+                <input type="checkbox" id="acceptDataProtectionCheck" required class="checkbox-custom ack-checkbox">
+                <span class="ack-text">
+                  <span class="ack-title">AUTORIZACIÓN DE TRATAMIENTO DE DATOS PERSONALES, AUDIO Y PANTALLA (LEY 1581 DE 2012)</span>
+                  <span class="ack-desc">
+                    De conformidad con la <strong>Ley Estatutaria 1581 de 2012</strong>, el Decreto 1377 de 2013 y normas concordantes de la República de Colombia, autorizo de manera previa, expresa, informada e inequívoca a <strong>LOZADA &amp; PARTNERS SAS</strong> para recolectar y tratar mis datos personales, registro de voz y grabación en video de pantalla compartida, con la <strong>exclusiva finalidad</strong> de supervisar, auditar la autoría y verificar la transparencia en el proceso de selección para el cargo de <em>Especialista de Nómina</em>.<br><br>
+                    Declaro conocer que las grabaciones se conservarán bajo estricta reserva por un período máximo de <strong>treinta (30) días calendario</strong> posteriores al cierre de la convocatoria, transcurridos los cuales serán eliminadas definitivamente, y que podré ejercer mis derechos de conocimiento, actualización y supresión ante la Dirección de Gestión Humana de la entidad.
+                  </span>
                 </span>
               </label>
             </div>
@@ -248,6 +266,10 @@
         </div>
 
         <div class="supervision-status">
+          <div class="recording-live-indicator" id="recordingLiveIndicator" title="Grabación de pantalla completa y audio ambiental en curso conforme a la Ley 1581 de 2012">
+            <span class="pulsing-rec-dot"></span>
+            <span class="rec-label">REC • Pantalla &amp; Audio</span>
+          </div>
           <div class="status-shield-indicator active">
             <span class="pulsing-shield-dot"></span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -1127,6 +1149,37 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             <span>Guardar Calificación</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Tarjeta de Grabación de Auditoría (Pantalla y Audio) -->
+      <div id="modalRecordingCard" class="modal-recording-card card hidden">
+        <div class="recording-card-header">
+          <div class="recording-title-box">
+            <span class="recording-icon">🎥</span>
+            <div>
+              <h4 class="recording-card-title">Grabación de Pantalla y Audio (Auditoría Ley 1581)</h4>
+              <p class="text-xs text-muted" id="modalRecordingMeta">Supervisión técnica del examen</p>
+            </div>
+          </div>
+          <div class="recording-header-actions">
+            <div class="speed-control-group">
+              <span class="speed-label">Velocidad:</span>
+              <button type="button" class="btn-speed active" data-speed="1">1x</button>
+              <button type="button" class="btn-speed" data-speed="1.5">1.5x</button>
+              <button type="button" class="btn-speed" data-speed="2">2x</button>
+              <button type="button" class="btn-speed" data-speed="4">4x</button>
+            </div>
+            <button type="button" class="btn btn-outline-danger btn-sm" id="btnDeleteCandidateRecording" title="Eliminar grabación para liberar espacio en Supabase (Conservación de 30 días según Ley 1581)">
+              🗑️ Liberar Espacio
+            </button>
+          </div>
+        </div>
+        <div class="recording-player-wrapper">
+          <video id="modalRecordingPlayer" controls playsinline preload="metadata" class="recording-video-element"></video>
+        </div>
+        <div class="recording-legal-notice">
+          <small>⚖️ <strong>Ley 1581 de 2012:</strong> Grabación autorizada con fines exclusivos de validación de prueba técnica. Destrucción tras 30 días para liberar almacenamiento.</small>
         </div>
       </div>
 

@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS public.pruebas_nomina (
     estado TEXT NOT NULL CHECK (estado IN ('EN_CURSO', 'FINALIZADO', 'BLOQUEADO')),
     motivo_bloqueo TEXT,
     respuestas JSONB DEFAULT '{}'::jsonb,
+    grabacion_url TEXT DEFAULT NULL,
+    grabacion_size INTEGER DEFAULT NULL,
+    autorizacion_datos BOOLEAN DEFAULT FALSE,
+    autorizacion_fecha TIMESTAMPTZ DEFAULT NULL,
     fecha TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -22,6 +26,39 @@ CREATE TABLE IF NOT EXISTS public.pruebas_nomina (
 CREATE INDEX IF NOT EXISTS idx_pruebas_nomina_cedula ON public.pruebas_nomina(cedula);
 CREATE INDEX IF NOT EXISTS idx_pruebas_nomina_estado ON public.pruebas_nomina(estado);
 CREATE INDEX IF NOT EXISTS idx_pruebas_nomina_fecha ON public.pruebas_nomina(fecha DESC);
+
+-- 4. Bucket en Supabase Storage (Optimizado para Free Tier 50MB)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'grabaciones-pruebas', 
+  'grabaciones-pruebas', 
+  true, -- Accesible mediante enlace directo para el reproductor de video de Paola
+  52428800, -- 50 MB límite por archivo
+  ARRAY['video/webm', 'video/mp4']
+)
+ON CONFLICT (id) DO UPDATE SET 
+  public = true, 
+  file_size_limit = 52428800,
+  allowed_mime_types = ARRAY['video/webm', 'video/mp4'];
+
+-- Políticas de Almacenamiento (RLS en storage.objects)
+DROP POLICY IF EXISTS "Permitir subida grabaciones candidatos" ON storage.objects;
+CREATE POLICY "Permitir subida grabaciones candidatos" 
+ON storage.objects 
+FOR INSERT 
+WITH CHECK (bucket_id = 'grabaciones-pruebas');
+
+DROP POLICY IF EXISTS "Permitir lectura grabaciones" ON storage.objects;
+CREATE POLICY "Permitir lectura grabaciones" 
+ON storage.objects 
+FOR SELECT 
+USING (bucket_id = 'grabaciones-pruebas');
+
+DROP POLICY IF EXISTS "Permitir borrado grabaciones admin" ON storage.objects;
+CREATE POLICY "Permitir borrado grabaciones admin" 
+ON storage.objects 
+FOR DELETE 
+USING (bucket_id = 'grabaciones-pruebas');
 
 -- 4. Habilitar Row Level Security (RLS) Estricto
 ALTER TABLE public.pruebas_nomina ENABLE ROW LEVEL SECURITY;

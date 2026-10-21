@@ -184,6 +184,7 @@ const DOM = {
   candidateEmail: document.getElementById('candidateEmail'),
   candidateBirthDate: document.getElementById('candidateBirthDate'),
   acceptSupervisionCheck: document.getElementById('acceptSupervisionCheck'),
+  acceptDataProtectionCheck: document.getElementById('acceptDataProtectionCheck'),
   technicalExamForm: document.getElementById('technicalExamForm'),
   btnSubmitExam: document.getElementById('btnSubmitExam'),
 
@@ -220,6 +221,10 @@ const DOM = {
   modalCandidateNameTitle: document.getElementById('modalCandidateNameTitle'),
   modalCandidateMetaInfo: document.getElementById('modalCandidateMetaInfo'),
   modalResponsesContent: document.getElementById('modalResponsesContent'),
+  modalRecordingCard: document.getElementById('modalRecordingCard'),
+  modalRecordingPlayer: document.getElementById('modalRecordingPlayer'),
+  modalRecordingMeta: document.getElementById('modalRecordingMeta'),
+  btnDeleteCandidateRecording: document.getElementById('btnDeleteCandidateRecording'),
   btnCloseResponsesModal: document.getElementById('btnCloseResponsesModal'),
   btnDoneViewingResponses: document.getElementById('btnDoneViewingResponses'),
   btnExportResponses: document.getElementById('btnExportResponses'),
@@ -383,6 +388,35 @@ const DatabaseService = {
     }
     LocalStorageDB.deleteByCedula(cedula);
     return true;
+  },
+
+  // 3.1 Eliminar únicamente la grabación de pantalla para liberar almacenamiento (Ley 1581 de 2012)
+  async deleteCandidateRecording(cedula) {
+    const token = sessionStorage.getItem('LP_ADMIN_TOKEN');
+    if (token) {
+      try {
+        const res = await fetch(`/api/admin-data?cedula=${encodeURIComponent(cedula)}&action=delete-recording`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) return true;
+      } catch (err) {
+        console.warn('Fallo /api/admin-data delete-recording:', err);
+      }
+    }
+
+    if (supabaseClient) {
+      try {
+        await supabaseClient.from('pruebas_nomina').update({
+          grabacion_url: null,
+          grabacion_size: null
+        }).eq('cedula', cedula);
+        return true;
+      } catch (e) {
+        console.warn('Fallo Supabase directo delete recording:', e);
+      }
+    }
+    return false;
   },
 
   // 4. Servicio Confidencial de Calificación y Solucionario (/api/grade)
@@ -800,6 +834,194 @@ const AntiFraudSystem = {
       motivo_bloqueo: reason,
       fecha: new Date().toISOString()
     });
+
+    // 5. Detener y subir la grabación de pantalla acumulada (auditoría Ley 1581)
+    if (typeof ScreenAudioRecorder !== 'undefined') {
+      ScreenAudioRecorder.stopAndUpload(candidateCedula).catch(e => {
+        console.warn('Fallo al subir grabación tras bloqueo:', e);
+      });
+    }
+  }
+};
+
+// ==============================================================================
+// 7.1 MÓDULO DE GRABACIÓN DE PANTALLA Y AUDIO OPTIMIZADO (LEY 1581 DE 2012)
+// Diseñado especialmente para plan gratuito de Supabase (Límite 50MB / 1GB total):
+// - 1 a 2 FPS (Frames por segundo)
+// - Audio mono comprimido (Opus 16 kbps)
+// - Peso estimado en 90 minutos: ~15 a 25 MB
+// ==============================================================================
+const ScreenAudioRecorder = {
+  mediaRecorder: null,
+  recordedChunks: [],
+  screenStream: null,
+  audioStream: null,
+  combinedStream: null,
+  isRecording: false,
+
+  async requestPermissionsAndStart() {
+    this.recordedChunks = [];
+
+    // 1. Captura de pantalla completa a 1-2 FPS
+    this.screenStream = await navigator.mediaDevices.getDisplayMedia({
+      video: {
+        displaySurface: 'monitor',
+        frameRate: { ideal: 1, max: 2 },
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 }
+      },
+      audio: false
+    });
+
+    // Supervisión antifraude: Si el candidato detiene la compartición de pantalla
+    const videoTrack = this.screenStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.addEventListener('ended', () => {
+        if (AppState.isExamActive && !AppState.isBlocked) {
+          AntiFraudSystem.triggerBlock(
+            'El candidato detuvo la compartición obligatoria de pantalla (violación del protocolo de supervisión Ley 1581).'
+          );
+        }
+      });
+    }
+
+    // 2. Captura de audio del micrófono
+    try {
+      this.audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000
+        },
+        video: false
+      });
+    } catch (audioErr) {
+      console.warn('Micrófono no disponible, continuando solo con pantalla:', audioErr);
+      this.audioStream = null;
+    }
+
+    // 3. Combinar pistas
+    const tracks = [...this.screenStream.getVideoTracks()];
+    if (this.audioStream) {
+      tracks.push(...this.audioStream.getAudioTracks());
+    }
+    this.combinedStream = new MediaStream(tracks);
+
+    // 4. Iniciar MediaRecorder ultra comprimido
+    let mimeType = 'video/webm;codecs=vp8,opus';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'video/webm';
+    }
+
+    const options = {
+      mimeType,
+      videoBitsPerSecond: 25000,
+      audioBitsPerSecond: 16000
+    };
+
+    try {
+      this.mediaRecorder = new MediaRecorder(this.combinedStream, options);
+    } catch (e) {
+      this.mediaRecorder = new MediaRecorder(this.combinedStream);
+    }
+
+    this.mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        this.recordedChunks.push(e.data);
+      }
+    };
+
+    this.mediaRecorder.start(10000);
+    this.isRecording = true;
+    console.log('🎥 Grabación técnica de pantalla y audio iniciada.');
+    return true;
+  },
+
+  stopStreams() {
+    if (this.screenStream) {
+      this.screenStream.getTracks().forEach(t => t.stop());
+      this.screenStream = null;
+    }
+    if (this.audioStream) {
+      this.audioStream.getTracks().forEach(t => t.stop());
+      this.audioStream = null;
+    }
+    if (this.combinedStream) {
+      this.combinedStream.getTracks().forEach(t => t.stop());
+      this.combinedStream = null;
+    }
+  },
+
+  async stopAndUpload(cedula) {
+    if (!this.isRecording || !this.mediaRecorder) {
+      return null;
+    }
+    this.isRecording = false;
+
+    return new Promise((resolve) => {
+      this.mediaRecorder.onstop = async () => {
+        try {
+          this.stopStreams();
+          if (this.recordedChunks.length === 0) {
+            resolve(null);
+            return;
+          }
+
+          const blob = new Blob(this.recordedChunks, { type: 'video/webm' });
+          const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+          console.log(`📦 Grabación finalizada. Peso: ${sizeMB} MB`);
+
+          const fileName = `rec_${cedula}_${Date.now()}.webm`;
+          let uploadedUrl = null;
+
+          if (supabaseClient) {
+            try {
+              const { data, error } = await supabaseClient
+                .storage
+                .from('grabaciones-pruebas')
+                .upload(fileName, blob, {
+                  contentType: 'video/webm',
+                  cacheControl: '3600',
+                  upsert: true
+                });
+
+              if (!error && data) {
+                const { data: urlData } = supabaseClient
+                  .storage
+                  .from('grabaciones-pruebas')
+                  .getPublicUrl(fileName);
+                uploadedUrl = urlData ? urlData.publicUrl : fileName;
+              } else {
+                console.warn('Error subiendo archivo a Supabase Storage:', error);
+              }
+            } catch (err) {
+              console.warn('Fallo conexión storage:', err);
+            }
+          }
+
+          if (uploadedUrl) {
+            await DatabaseService.candidateAction('save-recording', {
+              cedula,
+              grabacion_url: uploadedUrl,
+              grabacion_size: blob.size
+            });
+            resolve({ url: uploadedUrl, size: blob.size });
+          } else {
+            resolve(null);
+          }
+        } catch (e) {
+          console.error('Error procesando blob de grabación:', e);
+          resolve(null);
+        }
+      };
+
+      try {
+        this.mediaRecorder.stop();
+      } catch (e) {
+        this.stopStreams();
+        resolve(null);
+      }
+    });
   }
 };
 
@@ -1027,6 +1249,24 @@ async function handleCandidateLogin(e) {
     return;
   }
 
+  // Validación de Consentimiento Ley 1581 de 2012 (Protección de datos y grabación de audio/pantalla)
+  if (!DOM.acceptDataProtectionCheck || !DOM.acceptDataProtectionCheck.checked) {
+    const box = document.getElementById('securityWarningBox');
+    if (box) {
+      box.classList.remove('shake-attention');
+      void box.offsetWidth;
+      box.classList.add('shake-attention');
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    showToast(
+      'Autorización Ley 1581 Requerida',
+      'Debe autorizar el tratamiento de datos personales, grabación de pantalla y registro de audio ambiental conforme a la Ley 1581 de 2012 para poder presentar la prueba.',
+      'warning'
+    );
+    if (DOM.acceptDataProtectionCheck) DOM.acceptDataProtectionCheck.focus();
+    return;
+  }
+
   const fullName = `${nombres} ${apellidos}`;
   const candidateInfo = {
     nombres,
@@ -1035,6 +1275,7 @@ async function handleCandidateLogin(e) {
     correo: email,
     fecha_nacimiento: birthDate,
     terminos_aceptados: true,
+    autorizacion_datos: true,
     fecha_aceptacion_terminos: new Date().toISOString()
   };
   AppState.candidateMeta = candidateInfo;
@@ -1078,6 +1319,20 @@ async function handleCandidateLogin(e) {
       }
 
       if (serverCheck.status === 'EN_CURSO') {
+        // Solicitar permisos de grabación de pantalla y audio antes de ingresar al examen
+        try {
+          showToast('Iniciando Grabación', 'Por favor seleccione "Pantalla completa" en el diálogo del navegador...', 'info');
+          await ScreenAudioRecorder.requestPermissionsAndStart();
+        } catch (mediaErr) {
+          console.warn('Permisos de grabación denegados o cancelados:', mediaErr);
+          showToast(
+            'Permiso Obligatorio',
+            'Debe autorizar compartir la pantalla completa y micrófono para cumplir el protocolo antifraude y la Ley 1581.',
+            'error'
+          );
+          return;
+        }
+
         if (serverCheck.resuming) {
           showToast('Reanudando', 'Continuando examen en progreso...', 'info');
         }
@@ -1103,9 +1358,23 @@ async function handleCandidateLogin(e) {
         return;
       }
       if (existing.estado === 'EN_CURSO') {
+        try {
+          await ScreenAudioRecorder.requestPermissionsAndStart();
+        } catch (mediaErr) {
+          showToast('Permiso Obligatorio', 'Debe autorizar pantalla completa y micrófono para continuar.', 'error');
+          return;
+        }
         startExamView(existing, existing.respuestas || {});
         return;
       }
+    }
+
+    // Candidato nuevo en fallback
+    try {
+      await ScreenAudioRecorder.requestPermissionsAndStart();
+    } catch (mediaErr) {
+      showToast('Permiso Obligatorio', 'Debe autorizar pantalla completa y micrófono para iniciar la prueba.', 'error');
+      return;
     }
 
     const newRecord = {
@@ -1113,7 +1382,8 @@ async function handleCandidateLogin(e) {
       cedula: cedula,
       estado: 'EN_CURSO',
       motivo_bloqueo: null,
-      respuestas: { _candidato: candidateInfo }
+      respuestas: { _candidato: candidateInfo },
+      autorizacion_datos: true
     };
     const saved = await DatabaseService.insertCandidate(newRecord);
     startExamView(saved || newRecord);
@@ -1150,6 +1420,16 @@ async function handleSubmitExam(isAutoSubmit = false) {
   AppState.isExamActive = false;
   AntiFraudSystem.deactivate();
   ExamTimer.stop();
+
+  // Detener y subir la grabación optimizada a Supabase Storage (Ley 1581)
+  if (typeof ScreenAudioRecorder !== 'undefined') {
+    const candidateCedula = AppState.currentCandidate ? AppState.currentCandidate.cedula : '';
+    if (candidateCedula) {
+      ScreenAudioRecorder.stopAndUpload(candidateCedula).catch(err => {
+        console.warn('Error al subir grabación final:', err);
+      });
+    }
+  }
 
   showToast('Enviando', 'Guardando respuestas finales en el sistema...', 'info');
 
@@ -1360,6 +1640,47 @@ async function openResponsesModal(cedula) {
     <strong>Estado:</strong> ${escapeHtml(candidate.estado)} &nbsp;|&nbsp; 
     <strong>Fecha:</strong> ${formatDate(candidate.fecha)}
   `;
+
+  // Configuración de la grabación de pantalla y audio (Auditoría Ley 1581)
+  if (candidate.grabacion_url) {
+    if (DOM.modalRecordingCard) DOM.modalRecordingCard.classList.remove('hidden');
+    if (DOM.modalRecordingPlayer) {
+      DOM.modalRecordingPlayer.src = candidate.grabacion_url;
+      DOM.modalRecordingPlayer.playbackRate = 1;
+    }
+    if (DOM.modalRecordingMeta) {
+      const sizeMB = candidate.grabacion_size ? (candidate.grabacion_size / (1024 * 1024)).toFixed(1) + ' MB' : 'Disponible';
+      DOM.modalRecordingMeta.textContent = `Archivo: ${sizeMB} | Consentimiento Ley 1581: Aceptado | Grabado a 1-2 FPS`;
+    }
+    // Botón de eliminar grabación para liberar espacio
+    if (DOM.btnDeleteCandidateRecording) {
+      DOM.btnDeleteCandidateRecording.onclick = async () => {
+        if (!confirm(`¿Desea eliminar la grabación de video de ${candidate.nombre} para liberar almacenamiento en Supabase Storage (Ley 1581 de 2012)?`)) {
+          return;
+        }
+        showToast('Liberando Espacio', 'Eliminando archivo de grabación de Supabase Storage...', 'info');
+        const ok = await DatabaseService.deleteCandidateRecording(candidate.cedula);
+        if (ok) {
+          if (DOM.modalRecordingPlayer) {
+            DOM.modalRecordingPlayer.pause();
+            DOM.modalRecordingPlayer.src = '';
+          }
+          if (DOM.modalRecordingCard) DOM.modalRecordingCard.classList.add('hidden');
+          candidate.grabacion_url = null;
+          candidate.grabacion_size = null;
+          showToast('Éxito', 'Grabación eliminada de Supabase Storage. Espacio liberado.', 'success');
+        } else {
+          showToast('Error', 'No se pudo eliminar la grabación.', 'error');
+        }
+      };
+    }
+  } else {
+    if (DOM.modalRecordingCard) DOM.modalRecordingCard.classList.add('hidden');
+    if (DOM.modalRecordingPlayer) {
+      DOM.modalRecordingPlayer.pause();
+      DOM.modalRecordingPlayer.src = '';
+    }
+  }
 
   DOM.modalResponsesContent.innerHTML = `
     <div class="text-center py-12 text-muted">
@@ -1765,12 +2086,31 @@ function initApp() {
   }
 
   // Modales de Admin
+  const closeModalPlayer = () => {
+    DOM.responsesModal.classList.add('hidden');
+    if (DOM.modalRecordingPlayer) {
+      DOM.modalRecordingPlayer.pause();
+      DOM.modalRecordingPlayer.src = '';
+    }
+  };
   if (DOM.btnCloseResponsesModal) {
-    DOM.btnCloseResponsesModal.addEventListener('click', () => DOM.responsesModal.classList.add('hidden'));
+    DOM.btnCloseResponsesModal.addEventListener('click', closeModalPlayer);
   }
   if (DOM.btnDoneViewingResponses) {
-    DOM.btnDoneViewingResponses.addEventListener('click', () => DOM.responsesModal.classList.add('hidden'));
+    DOM.btnDoneViewingResponses.addEventListener('click', closeModalPlayer);
   }
+
+  // Controles de velocidad del reproductor de auditoría (1x, 1.5x, 2x, 4x)
+  document.querySelectorAll('.btn-speed').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const speed = parseFloat(btn.getAttribute('data-speed') || '1');
+      if (DOM.modalRecordingPlayer) {
+        DOM.modalRecordingPlayer.playbackRate = speed;
+      }
+    });
+  });
   if (DOM.btnExportResponses) {
     DOM.btnExportResponses.addEventListener('click', () => window.print());
   }

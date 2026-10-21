@@ -110,7 +110,9 @@ module.exports = async (req, res) => {
         estado: 'EN_CURSO',
         motivo_bloqueo: null,
         respuestas: initialRespuestas,
-        fecha: new Date().toISOString()
+        fecha: new Date().toISOString(),
+        autorizacion_datos: Boolean(meta.autorizacion_datos),
+        autorizacion_fecha: new Date().toISOString()
       };
 
       const inserted = await querySupabaseAdmin('pruebas_nomina', {
@@ -133,7 +135,8 @@ module.exports = async (req, res) => {
     }
 
     // Si ya estaba bloqueado o finalizado en el servidor, no permitir más escrituras
-    if (current.estado === 'BLOQUEADO' || current.estado === 'FINALIZADO') {
+    // Excepción: permitir guardar la grabación que termina de procesarse justo después del bloqueo/finalizado
+    if (action !== 'save-recording' && (current.estado === 'BLOQUEADO' || current.estado === 'FINALIZADO')) {
       return res.status(403).json({
         error: `Operación denegada. El examen se encuentra en estado ${current.estado}.`,
         estado: current.estado
@@ -171,13 +174,17 @@ module.exports = async (req, res) => {
         }
       };
 
+      const blockPayload = {
+        estado: 'BLOQUEADO',
+        motivo_bloqueo: reason || 'Acción no permitida detectada por el sistema antifraude',
+        respuestas: mergedAnswers
+      };
+      if (req.body.grabacion_url) blockPayload.grabacion_url = req.body.grabacion_url;
+      if (req.body.grabacion_size) blockPayload.grabacion_size = Number(req.body.grabacion_size);
+
       await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cleanCedula)}`, {
         method: 'PATCH',
-        body: {
-          estado: 'BLOQUEADO',
-          motivo_bloqueo: reason || 'Acción no permitida detectada por el sistema antifraude',
-          respuestas: mergedAnswers
-        }
+        body: blockPayload
       });
 
       return res.status(200).json({
@@ -198,18 +205,41 @@ module.exports = async (req, res) => {
         _finalizado_servidor: new Date().toISOString()
       };
 
+      const submitPayload = {
+        estado: 'FINALIZADO',
+        respuestas: mergedAnswers
+      };
+      if (req.body.grabacion_url) submitPayload.grabacion_url = req.body.grabacion_url;
+      if (req.body.grabacion_size) submitPayload.grabacion_size = Number(req.body.grabacion_size);
+
       await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cleanCedula)}`, {
         method: 'PATCH',
-        body: {
-          estado: 'FINALIZADO',
-          respuestas: mergedAnswers
-        }
+        body: submitPayload
       });
 
       return res.status(200).json({
         success: true,
         status: 'FINALIZADO',
         fecha: new Date().toISOString()
+      });
+    }
+
+    // --------------------------------------------------------------------------
+    // ACCIÓN: SAVE-RECORDING (Vincular URL de la grabación en Supabase Storage)
+    // --------------------------------------------------------------------------
+    if (action === 'save-recording') {
+      const { grabacion_url, grabacion_size } = req.body || {};
+      await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cleanCedula)}`, {
+        method: 'PATCH',
+        body: {
+          grabacion_url: grabacion_url || null,
+          grabacion_size: grabacion_size ? Number(grabacion_size) : null
+        }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Grabación de auditoría registrada correctamente.'
       });
     }
 

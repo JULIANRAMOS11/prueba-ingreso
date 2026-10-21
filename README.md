@@ -8,6 +8,8 @@ Aplicación web empresarial desarrollada para el Área de Recursos Humanos de **
 
 1. **Vista Candidato (`/`):**
    - Formulario de identificación inicial con validación de Cédula de Ciudadanía única (sin puntos ni caracteres especiales).
+   - **Consentimiento Ley 1581 de 2012 (Habeas Data):** Autorización previa, expresa e informada para el tratamiento de datos personales, voz y pantalla compartida, con compromiso de destrucción a los 30 días.
+   - **Grabación Audiovisual Continua de Supervisión:** Captura simultánea de pantalla completa y micrófono ambiental optimizada para el plan Free de Supabase (1-2 FPS, audio mono 16 kbps, ~15-25 MB por 90 min).
    - Control de estados en Supabase (`EN_CURSO`, `FINALIZADO`, `BLOQUEADO`).
    - Bloqueo persistente que impide evadir la anulación recargando la página con F5.
    - Guardado automático (Autosave) continuo de respuestas para prevenir pérdidas de datos.
@@ -15,6 +17,7 @@ Aplicación web empresarial desarrollada para el Área de Recursos Humanos de **
 
 2. **Sistema Antifraude Estricto (Activo únicamente durante el examen):**
    - **Bloqueo CSS:** `user-select: none` en todo el documento excepto dentro de los campos `input` y `textarea`.
+   - **Supervisión de Pantalla Compartida:** Si el candidato presiona "Dejar de compartir" en la barra del navegador, se dispara el bloqueo inmediato e irreversible.
    - **Eventos Monitoreados con Anulación Inmediata:**
      - Cambio de pestaña o minimización del navegador (`visibilitychange`).
      - Pérdida de foco de la ventana (`blur`: cambio de monitor, apertura de otra aplicación, Alt+Tab).
@@ -26,13 +29,15 @@ Aplicación web empresarial desarrollada para el Área de Recursos Humanos de **
      - Atajos de teclado: `F12`, `Ctrl+Shift+I/J/C`, `Ctrl+U`, `Ctrl+C`, `Ctrl+V`, `Ctrl+P`, `Ctrl+S`, `Alt+Tab`.
    - **Protocolo de Bloqueo Automático:**
      - Detiene la prueba de forma irreversible.
-     - Realiza un `UPDATE` en Supabase marcando el estado como `BLOQUEADO`, especificando el motivo exacto y resguardando las respuestas acumuladas hasta ese segundo.
+     - Realiza un `UPDATE` en Supabase marcando el estado como `BLOQUEADO`, especificando el motivo exacto, resguardando las respuestas acumuladas y subiendo la grabación de auditoría a Supabase Storage.
      - Despliega inmediatamente la **pantalla roja de alerta institucional**.
 
 3. **Panel Administrativo para Paola (`/?admin=paola2026`):**
    - Métricas en tiempo real: Total de candidatos, Finalizados, En Curso y Bloqueados.
    - Tabla interactiva con orden cronológico descendente.
    - Badges de estado con iluminación: `FINALIZADO` (verde esmeralda), `EN_CURSO` (azul con pulso animado), `BLOQUEADO` (rojo carmesí con detalle del motivo).
+   - **Reproductor de Auditoría (Pantalla y Audio):** Video integrado en el modal del candidato con selector de velocidad rápida (1x, 1.5x, 2x, 4x) para auditar un examen de 90 minutos en solo 15-20 minutos.
+   - **Liberación de Almacenamiento (Ley 1581):** Botón directo para purgar el video de Supabase Storage una vez evaluado el candidato, garantizando que el plan gratuito de 1 GB nunca se agote.
    - **Ver Respuestas:** Modal estructurado que desglosa las 7 secciones y respuestas del candidato con opción de impresión / exportación a PDF.
    - **Desbloquear / Reiniciar:** Permite a Recursos Humanos restablecer a un candidato bloqueado por falso positivo para que pueda volver a presentar la prueba.
    - Barra de búsqueda por nombre/cédula y filtros dinámicos.
