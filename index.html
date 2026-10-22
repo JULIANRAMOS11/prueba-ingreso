@@ -172,16 +172,16 @@
                 <span><strong>Tiempo límite inflexible:</strong> Dispone de exactamente <strong>1 hora y 30 minutos (90 minutos)</strong> continuos. Un cronómetro en vivo marcará el tiempo y al expirar sus respuestas se enviarán automáticamente.</span>
               </li>
               <li>
+                <span class="rule-icon">🖥️</span>
+                <span><strong>Modo Pantalla Completa Obligatorio (Sin Minimizar):</strong> Al iniciar la evaluación, el sistema entrará automáticamente en pantalla completa. <strong>Está estrictamente prohibido salir de pantalla completa, minimizar el navegador o presionar la tecla Esc; cualquier intento de minimizar anulará el examen en el acto.</strong></span>
+              </li>
+              <li>
                 <span class="rule-icon">🎥</span>
                 <span><strong>Grabación obligatoria de pantalla y audio:</strong> Por protocolo de integridad y transparencia, durante toda la evaluación se registrará en video su pantalla completa y el audio ambiental capturado por su micrófono. <strong>Detener la compartición de pantalla en cualquier momento anulará el examen en el acto.</strong></span>
               </li>
               <li>
                 <span class="rule-icon">🚫</span>
-                <span><strong>Clic derecho ESTRICTAMENTE PROHIBIDO:</strong> El uso del clic derecho y menús contextuales está totalmente deshabilitado y bloqueado. Intentar abrirlo dentro del examen será registrado como intento de fraude y anulará su prueba de inmediato.</span>
-              </li>
-              <li>
-                <span class="rule-icon">🖥️</span>
-                <span><strong>Permanencia obligatoria en la pantalla:</strong> Prohibido cambiar de pestaña, minimizar el navegador, abrir otra ventana (Alt+Tab) o perder el foco. <strong>Cualquier salida de la página anula la prueba de forma inmediata e irreversible.</strong></span>
+                <span><strong>Clic derecho y copiado restringidos:</strong> El menú contextual, el clic derecho y el copiado de texto se encuentran inhabilitados para proteger el contenido de la evaluación.</span>
               </li>
               <li>
                 <span class="rule-icon">📋</span>
@@ -199,7 +199,7 @@
                 <input type="checkbox" id="acceptSupervisionCheck" required class="checkbox-custom ack-checkbox">
                 <span class="ack-text">
                   <span class="ack-title">HE LEÍDO, COMPRENDO Y ACEPTO TODAS LAS CONDICIONES ANTERIORES</span>
-                  <span class="ack-desc">Certifico que leí atentamente las normas de seguridad (incluyendo la prohibición de clic derecho, tiempo límite de 90 minutos y permanencia en pantalla). Entiendo y acepto que cualquier infracción anulará mi prueba en el acto, sin posibilidad de reclamos posteriores alegando desconocimiento.</span>
+                  <span class="ack-desc">Certifico que leí atentamente las normas de seguridad (incluyendo la obligación de permanecer en <strong>pantalla completa sin minimizar</strong>, tiempo límite de 90 minutos y permanencia en la evaluación). Entiendo y acepto que cualquier infracción o intento de minimizar anulará mi prueba en el acto, sin posibilidad de reclamos posteriores.</span>
                 </span>
               </label>
             </div>
@@ -1232,11 +1232,11 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="btnExportResponses">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          <span>Imprimir / Guardar PDF</span>
+        <button type="button" class="btn btn-primary" id="btnExportResponses" title="Descargar la ficha ejecutiva oficial del candidato en formato PDF">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>📥 Descargar Ficha en PDF</span>
         </button>
-        <button type="button" class="btn btn-primary" id="btnDoneViewingResponses">Cerrar</button>
+        <button type="button" class="btn btn-secondary" id="btnDoneViewingResponses">Cerrar</button>
       </div>
     </div>
   </div>

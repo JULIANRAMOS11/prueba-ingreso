@@ -604,6 +604,42 @@ const ExamTimer = {
 };
 
 // ==============================================================================
+// 6.5 CONTROL DE PANTALLA COMPLETA OBLIGATORIA (SIN OPCIÓN DE MINIMIZAR)
+// ==============================================================================
+async function requestFullScreenMode() {
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+      await el.requestFullscreen();
+    } else if (el.webkitRequestFullscreen) {
+      await el.webkitRequestFullscreen();
+    } else if (el.mozRequestFullScreen) {
+      await el.mozRequestFullScreen();
+    } else if (el.msRequestFullscreen) {
+      await el.msRequestFullscreen();
+    }
+  } catch (err) {
+    console.warn('Pantalla completa no activada automáticamente:', err);
+  }
+}
+
+function exitFullScreenMode() {
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen().catch(() => {});
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen().catch(() => {});
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen().catch(() => {});
+      }
+    }
+  } catch (err) {}
+}
+
+// ==============================================================================
 // 7. SISTEMA ANTIFRAUDE ESTRICTO (ACTIVO ÚNICAMENTE EN EXAMEN)
 // ==============================================================================
 const AntiFraudSystem = {
@@ -679,11 +715,15 @@ const AntiFraudSystem = {
         this.triggerBlock('Intento de pegar contenido externo en el examen (evento paste detectado).');
       },
 
-      // 9. Clic derecho / menú contextual
+      // 9. Clic derecho / menú contextual neutralizado (sin anulación accidental por touchpad)
       contextMenu: (e) => {
         if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
         e.preventDefault();
-        this.triggerBlock('Intento de abrir menú contextual con clic derecho (contextmenu).');
+        showToast(
+          'Acción Restringida',
+          'El menú contextual y la copia de contenido están inhabilitados durante la evaluación técnica.',
+          'warning'
+        );
       },
 
       // 10. Intento de seleccionar texto fuera de inputs y textareas
@@ -696,12 +736,26 @@ const AntiFraudSystem = {
         }
       },
 
-      // 11. Atajos de teclado bloqueados (F12, Ctrl+Shift+I, Ctrl+C, Ctrl+V, etc.)
+      // 11. Atajos de teclado bloqueados (F12, F11, Esc, Ctrl+Shift+I, Ctrl+C, Ctrl+V, etc.)
       keyDown: (e) => {
         if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
 
         const isCtrlOrCmd = e.ctrlKey || e.metaKey;
         const key = e.key.toUpperCase();
+
+        // F11 (Pantalla completa alterada)
+        if (e.key === 'F11') {
+          e.preventDefault();
+          this.triggerBlock('Intento de alterar o salir del modo de pantalla completa con la tecla F11.');
+          return;
+        }
+
+        // Tecla Escape (Salir de pantalla completa)
+        if (e.key === 'Escape' || e.key === 'Esc') {
+          e.preventDefault();
+          this.triggerBlock('Intento de salir de pantalla completa o minimizar mediante la tecla Escape (Esc).');
+          return;
+        }
 
         // F12 (Herramientas de desarrollo)
         if (e.key === 'F12') {
@@ -758,6 +812,24 @@ const AntiFraudSystem = {
           this.triggerBlock('Intento de cambiar de ventana con Alt+Tab.');
           return;
         }
+      },
+
+      // 12. Salida de pantalla completa o minimización del navegador
+      fullscreenChange: () => {
+        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
+        // Período de gracia inicial de 2.5s para permitir la transición fluida del navegador a pantalla completa
+        if (this.activatedAt && (Date.now() - this.activatedAt < 2500)) return;
+
+        const isFullScreen = Boolean(
+          document.fullscreenElement || 
+          document.webkitFullscreenElement || 
+          document.mozFullScreenElement || 
+          document.msFullscreenElement
+        );
+
+        if (!isFullScreen) {
+          this.triggerBlock('El candidato salió del modo de pantalla completa obligatoria o intentó minimizar la ventana.');
+        }
       }
     };
   },
@@ -765,6 +837,7 @@ const AntiFraudSystem = {
   activate() {
     this.init();
     this.isPaused = false;
+    this.activatedAt = Date.now();
     document.addEventListener('visibilitychange', this.eventHandlers.visibilityChange);
     window.addEventListener('blur', this.eventHandlers.windowBlur);
     window.addEventListener('beforeunload', this.eventHandlers.beforeUnload);
@@ -776,7 +849,11 @@ const AntiFraudSystem = {
     document.addEventListener('contextmenu', this.eventHandlers.contextMenu);
     document.addEventListener('selectstart', this.eventHandlers.selectStart);
     document.addEventListener('keydown', this.eventHandlers.keyDown);
-    console.log('🛡️ Sistema Antifraude Estricto ACTIVADO.');
+    document.addEventListener('fullscreenchange', this.eventHandlers.fullscreenChange);
+    document.addEventListener('webkitfullscreenchange', this.eventHandlers.fullscreenChange);
+    document.addEventListener('mozfullscreenchange', this.eventHandlers.fullscreenChange);
+    document.addEventListener('MSFullscreenChange', this.eventHandlers.fullscreenChange);
+    console.log('🛡️ Sistema Antifraude Estricto ACTIVADO (Pantalla Completa Enforced).');
   },
 
   deactivate() {
@@ -792,6 +869,10 @@ const AntiFraudSystem = {
     document.removeEventListener('contextmenu', this.eventHandlers.contextMenu);
     document.removeEventListener('selectstart', this.eventHandlers.selectStart);
     document.removeEventListener('keydown', this.eventHandlers.keyDown);
+    document.removeEventListener('fullscreenchange', this.eventHandlers.fullscreenChange);
+    document.removeEventListener('webkitfullscreenchange', this.eventHandlers.fullscreenChange);
+    document.removeEventListener('mozfullscreenchange', this.eventHandlers.fullscreenChange);
+    document.removeEventListener('MSFullscreenChange', this.eventHandlers.fullscreenChange);
     console.log('🛡️ Sistema Antifraude DESACTIVADO.');
   },
 
@@ -803,6 +884,7 @@ const AntiFraudSystem = {
     // Desactivar inmediatamente para no disparar llamadas en bucle
     this.deactivate();
     ExamTimer.stop();
+    exitFullScreenMode();
 
     console.error('🚨 BLOQUEO ANTIFRAUDE DISPARADO:', reason);
 
@@ -1226,8 +1308,9 @@ function startExamView(candidate, existingAnswers = {}, remainingSeconds = null)
     history.pushState({ inExam: true }, '', window.location.href);
   } catch (e) {}
 
-  // ACTIVAR EL SISTEMA ANTIFRAUDE
+  // ACTIVAR EL SISTEMA ANTIFRAUDE Y PANTALLA COMPLETA OBLIGATORIA
   AntiFraudSystem.activate();
+  requestFullScreenMode();
 }
 
 // ==============================================================================
@@ -1556,6 +1639,7 @@ async function handleSubmitExam(isAutoSubmit = false) {
   AppState.isExamActive = false;
   AntiFraudSystem.deactivate();
   ExamTimer.stop();
+  exitFullScreenMode();
 
   // Detener y subir la grabación optimizada a Supabase Storage (Ley 1581)
   if (typeof ScreenAudioRecorder !== 'undefined') {
@@ -2373,7 +2457,12 @@ function initApp() {
       if (printDateEl) {
         printDateEl.textContent = `Informe oficial emitido el ${new Date().toLocaleString('es-CO', { dateStyle: 'long', timeStyle: 'short' })}`;
       }
+      const rawName = DOM.modalCandidateNameTitle ? DOM.modalCandidateNameTitle.textContent.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]/g, '').trim() : 'Candidato';
+      const cleanName = rawName.replace(/\s+/g, '_');
+      const prevTitle = document.title;
+      document.title = `Ficha_Evaluacion_${cleanName}_LOZADA`;
       window.print();
+      setTimeout(() => { document.title = prevTitle; }, 1000);
     });
   }
   if (DOM.btnAutoGradeCandidate) {
@@ -2480,19 +2569,19 @@ function initApp() {
 
   // Bloqueo global de clic derecho en la plataforma (Antifraude)
   document.addEventListener('contextmenu', (e) => {
-    // Si el examen está en curso, AntiFraudSystem ya lo maneja y anula la prueba de inmediato
+    // Si el examen está en curso, AntiFraudSystem ya lo maneja
     if (AppState.isExamActive) return;
     // Si Paola está autenticada y visualizando el panel de administración, permitimos clic normal
     if (sessionStorage.getItem('LP_ADMIN_AUTH') === 'true' && DOM.viewAdmin && !DOM.viewAdmin.classList.contains('hidden')) {
       return;
     }
-    // En las vistas de postulantes (registro, instrucciones o finalizado)
+    // En campos de texto de registro (inputs), permitir clic derecho para pegar o corregir con comodidad
+    const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+    if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
+      return;
+    }
+    // En el resto de la interfaz pública, neutralizar menú contextual sin mensajes molestos
     e.preventDefault();
-    showToast(
-      'Acción Prohibida',
-      'El uso de clic derecho está estrictamente prohibido en esta plataforma por motivos de seguridad antifraude.',
-      'warning'
-    );
   });
 
   // Bloqueo de teclas de inspección de código para postulantes
