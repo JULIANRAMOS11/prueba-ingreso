@@ -2482,6 +2482,257 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ========================================================================== */
+/* MÓDULO DE AUTORIZACIÓN Y SUBIDA DE EXCEL (.XLSX)                          */
+/* ========================================================================== */
+
+/* Banner de Excel Habilitado */
+.anti-cheat-mini-banner.excel-enabled-banner {
+  background: linear-gradient(135deg, rgba(16, 124, 65, 0.12) 0%, rgba(30, 41, 59, 0.7) 100%);
+  border: 1px solid rgba(16, 124, 65, 0.35);
+  color: #86efac;
+}
+
+.anti-cheat-mini-banner.excel-enabled-banner svg {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.anti-cheat-mini-banner.excel-enabled-banner code {
+  background: rgba(16, 124, 65, 0.3);
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+/* Tarjeta Práctica de Excel */
+.practical-excel-card {
+  border-top: 4px solid #107c41 !important;
+  background: linear-gradient(180deg, rgba(16, 124, 65, 0.04) 0%, var(--card-bg) 100%);
+}
+
+.section-tag-excel {
+  background: rgba(16, 124, 65, 0.18) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(16, 124, 65, 0.35) !important;
+}
+
+.excel-badge {
+  background: #107c41 !important;
+  color: #ffffff !important;
+}
+
+.excel-upload-container {
+  margin-top: 18px;
+}
+
+.hidden-file-input {
+  display: none !important;
+}
+
+/* Zona Dropzone */
+.excel-dropzone {
+  border: 2px dashed rgba(16, 124, 65, 0.45);
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: var(--radius-lg);
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  outline: none;
+}
+
+.excel-dropzone:hover,
+.excel-dropzone.dragover {
+  border-color: #22c55e;
+  background: rgba(16, 124, 65, 0.12);
+  box-shadow: 0 0 20px rgba(16, 124, 65, 0.2);
+  transform: translateY(-1px);
+}
+
+.dropzone-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.dropzone-icon-box {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(16, 124, 65, 0.15);
+  border: 1px solid rgba(16, 124, 65, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+  transition: transform var(--transition-fast);
+}
+
+.excel-dropzone:hover .dropzone-icon-box {
+  transform: scale(1.08);
+}
+
+.dropzone-main-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dropzone-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--white);
+}
+
+.browse-link {
+  color: #4ade80;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.dropzone-sub {
+  font-size: 0.8rem;
+  color: var(--slate-400);
+}
+
+.dropzone-btn {
+  margin-top: 4px;
+  border-color: rgba(16, 124, 65, 0.5);
+  color: #86efac;
+}
+
+.dropzone-btn:hover {
+  background: #107c41;
+  color: #ffffff;
+  border-color: #107c41;
+}
+
+/* Vista previa de archivo adjunto */
+.file-preview-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.25s ease;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.file-preview-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.file-excel-badge {
+  color: #22c55e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-preview-meta {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.file-preview-name {
+  font-size: 0.95rem;
+  color: var(--white);
+  word-break: break-all;
+}
+
+.file-preview-size {
+  font-size: 0.75rem;
+  color: var(--slate-400);
+}
+
+.file-preview-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-attached-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.btn-remove-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Tarjeta de Excel en Modal de Respuestas (Administrador) */
+.modal-excel-card {
+  background: linear-gradient(135deg, rgba(16, 124, 65, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+  border: 1px solid rgba(34, 197, 94, 0.35) !important;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-lg);
+}
+
+.excel-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.excel-title-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.excel-card-icon {
+  font-size: 1.6rem;
+}
+
+.excel-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 2px;
+}
+
+.badge-excel {
+  background: rgba(16, 124, 65, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* ========================================================================== */
 /* REGLAS ESTRICTAS DE IMPRESIÓN Y EXPORTACIÓN A PDF (@media print)          */
 /* Permite que el examen completo pagine sin cortes ni truncamiento          */
 /* ========================================================================== */
@@ -2521,6 +2772,7 @@ h1, h2, h3, h4, h5, h6 {
   .modal-footer,
   .btn-close,
   #modalRecordingCard,
+  #modalExcelCard,
   .question-grade-controls,
   .no-print {
     display: none !important;

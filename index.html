@@ -172,24 +172,20 @@
                 <span><strong>Tiempo límite inflexible:</strong> Dispone de exactamente <strong>1 hora y 30 minutos (90 minutos)</strong> continuos. Un cronómetro en vivo marcará el tiempo y al expirar sus respuestas se enviarán automáticamente.</span>
               </li>
               <li>
-                <span class="rule-icon">🖥️</span>
-                <span><strong>Modo Pantalla Completa Obligatorio (Sin Minimizar):</strong> Al iniciar la evaluación, el sistema entrará automáticamente en pantalla completa. <strong>Está estrictamente prohibido salir de pantalla completa, minimizar el navegador o presionar la tecla Esc; cualquier intento de minimizar anulará el examen en el acto.</strong></span>
+                <span class="rule-icon">📊</span>
+                <span><strong>Uso Autorizado de Microsoft Excel:</strong> Para resolver cálculos, liquidaciones y formulaciones prácticas de nómina, <strong>está autorizado abrir y utilizar Microsoft Excel en su equipo</strong> y alternar ventanas mediante <code>Alt + Tab</code> o la barra de tareas. Al finalizar, podrá adjuntar su archivo <code>.xlsx</code> de trabajo.</span>
               </li>
               <li>
                 <span class="rule-icon">🎥</span>
-                <span><strong>Grabación obligatoria de pantalla y audio:</strong> Por protocolo de integridad y transparencia, durante toda la evaluación se registrará en video su pantalla completa y el audio ambiental capturado por su micrófono. <strong>Detener la compartición de pantalla en cualquier momento anulará el examen en el acto.</strong></span>
+                <span><strong>Grabación obligatoria de pantalla completa, cámara y audio (Ley 1581):</strong> Durante toda la evaluación se graba continuamente todo su monitor, cámara facial y micrófono. <strong>Cualquier consulta a inteligencias artificiales (ChatGPT, etc.), chats o motores de búsqueda web quedará grabada en el video de auditoría y causará anulación inmediata.</strong> Detener la compartición de pantalla anulará el examen en el acto.</span>
               </li>
               <li>
                 <span class="rule-icon">🚫</span>
-                <span><strong>Clic derecho y copiado restringidos:</strong> El menú contextual, el clic derecho y el copiado de texto se encuentran inhabilitados para proteger el contenido de la evaluación.</span>
-              </li>
-              <li>
-                <span class="rule-icon">📋</span>
-                <span><strong>Prohibido copiar, pegar o asistencias de IA:</strong> No se permite copiar texto de las preguntas ni pegar información externa. Queda prohibido el uso de ChatGPT, Gemini u otras inteligencias artificiales o personas de soporte.</span>
+                <span><strong>Protección del Cuestionario y Copiado:</strong> El menú contextual y la copia de las preguntas están protegidos. Puede copiar y pegar valores y fórmulas exclusivamente dentro de los campos de respuesta de la prueba.</span>
               </li>
               <li>
                 <span class="rule-icon">⚖️</span>
-                <span><strong>Anulación definitiva e inapelable:</strong> Cualquier infracción detectada cancelará la evaluación de forma automática y registrará el incidente con fecha y hora en el sistema de Talento Humano.</span>
+                <span><strong>Auditoría y Anulación Inapelable:</strong> Si en la grabación de pantalla se detecta el uso de ayudas no autorizadas, personas externas o IA, la prueba será anulada con reporte de infracción en el sistema de Talento Humano.</span>
               </li>
             </ul>
 
@@ -199,7 +195,7 @@
                 <input type="checkbox" id="acceptSupervisionCheck" required class="checkbox-custom ack-checkbox">
                 <span class="ack-text">
                   <span class="ack-title">HE LEÍDO, COMPRENDO Y ACEPTO TODAS LAS CONDICIONES ANTERIORES</span>
-                  <span class="ack-desc">Certifico que leí atentamente las normas de seguridad (incluyendo la obligación de permanecer en <strong>pantalla completa sin minimizar</strong>, tiempo límite de 90 minutos y permanencia en la evaluación). Entiendo y acepto que cualquier infracción o intento de minimizar anulará mi prueba en el acto, sin posibilidad de reclamos posteriores.</span>
+                  <span class="ack-desc">Certifico que leí atentamente las normas de la prueba (tiempo límite de 90 minutos, autorización para uso de Microsoft Excel local y <strong>obligación de mantener la grabación de pantalla completa activa</strong> durante todo el examen). Entiendo que todo lo que realice en mi monitor queda grabado en video y que cualquier uso de IA o fuentes no autorizadas anulará mi postulación.</span>
                 </span>
               </label>
             </div>
@@ -315,9 +311,9 @@
               <span id="answeredQuestionsCount">0</span> / 38 Respondidas
             </div>
           </div>
-          <div class="anti-cheat-mini-banner">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span><strong>Duración: 1 hora y 30 minutos.</strong> Prohibido salir de la página o usar clic derecho: Si cambia de pestaña, minimiza, pasa a otra ventana, usa clic derecho o intenta copiar texto, su prueba será anulada inmediatamente.</span>
+          <div class="anti-cheat-mini-banner excel-enabled-banner">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span><strong>Uso de Microsoft Excel Autorizado:</strong> Puede alternar ventanas a Microsoft Excel en su equipo (<code>Alt + Tab</code> o barra de tareas) para formular y liquidar sus cálculos, y adjuntar su archivo <code>.xlsx</code> al final. <em>Recuerde: Su pantalla completa permanece bajo grabación continua de auditoría (Ley 1581); el uso de IAs o motores de búsqueda anulará la evaluación.</em></span>
           </div>
         </div>
 
@@ -893,6 +889,67 @@
             </div>
           </div>
 
+          <!-- =============================================================== -->
+          <!-- SECCIÓN PRÁCTICA: ANEXO DE HOJA DE CÁLCULO (MICROSOFT EXCEL)    -->
+          <!-- =============================================================== -->
+          <div class="section-card card practical-excel-card" id="sectionExcelUpload">
+            <div class="section-header">
+              <div class="section-tag section-tag-excel">Soporte Numérico Práctico</div>
+              <h3 class="section-title">Anexo de Hoja de Cálculo (Microsoft Excel)</h3>
+            </div>
+
+            <div class="case-context-box excel-context-box">
+              <div class="context-badge excel-badge">Validación de Fórmulas y Procedimientos</div>
+              <p class="context-text">
+                Para respaldar sus liquidaciones de nómina, cálculo de aportes, prestaciones e indemnizaciones, adjunte aquí su libro de trabajo en <strong>Microsoft Excel</strong> (formatos admitidos: <code>.xlsx</code>, <code>.xls</code>, <code>.xlsm</code>, <code>.csv</code> · Máximo 25 MB). 
+                Los evaluadores revisarán sus fórmulas, tablas y metodologías de cálculo.
+              </p>
+            </div>
+
+            <div class="excel-upload-container">
+              <input type="file" id="inputExcelFile" accept=".xlsx,.xls,.xlsm,.csv" class="hidden-file-input">
+              
+              <div class="excel-dropzone" id="excelDropZone" tabindex="0" role="button" aria-label="Zona para arrastrar o seleccionar archivo Excel">
+                <div class="dropzone-prompt" id="dropzonePrompt">
+                  <div class="dropzone-icon-box">
+                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9H8"/></svg>
+                  </div>
+                  <div class="dropzone-main-text">
+                    <span class="dropzone-title">Arrastre su archivo Excel aquí o <strong class="browse-link">haga clic para examinar</strong></span>
+                    <span class="dropzone-sub">Compatible con libros de Microsoft Excel (.xlsx, .xls) y CSV</span>
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-sm dropzone-btn" id="btnBrowseExcel">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span>Seleccionar Archivo</span>
+                  </button>
+                </div>
+
+                <!-- Vista previa del archivo adjuntado -->
+                <div class="file-preview-card hidden" id="filePreviewCard">
+                  <div class="file-preview-left">
+                    <div class="file-excel-badge">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7.5 14h-2l-1.5-3.5L6.5 17H4.5l2.5-5-2.5-5h2l1.5 3.5L9.5 7h2l-2.5 5 2.5 5zm7.5 0h-6v-2h6v2zm0-4h-6v-2h6v2zm0-4h-6V7h6v2z"/></svg>
+                    </div>
+                    <div class="file-preview-meta">
+                      <strong class="file-preview-name" id="previewFileName">mi_hoja_de_calculo.xlsx</strong>
+                      <span class="file-preview-size" id="previewFileSize">0 KB</span>
+                    </div>
+                  </div>
+                  <div class="file-preview-right">
+                    <span class="file-attached-status">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      <span>Archivo Adjunto</span>
+                    </span>
+                    <button type="button" class="btn btn-outline-danger btn-sm btn-remove-file" id="btnRemoveExcelFile" title="Quitar archivo adjunto">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      <span>Quitar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Botón de Envío Final -->
           <div class="exam-submit-card card text-center">
             <h3>¿Ha completado todas las secciones?</h3>
@@ -1214,6 +1271,25 @@
           </div>
           <div class="recording-legal-notice">
             <small>⚖️ <strong>Ley 1581 de 2012:</strong> Grabación autorizada con fines exclusivos de validación de prueba técnica. Destrucción tras 30 días para liberar almacenamiento.</small>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Archivo Excel Adjunto (Cálculos del Candidato) -->
+        <div id="modalExcelCard" class="modal-excel-card card hidden">
+          <div class="excel-card-header">
+            <div class="excel-title-box">
+              <span class="excel-card-icon">📊</span>
+              <div>
+                <h4 class="excel-card-title">Hoja de Cálculo Adjunta (Microsoft Excel)</h4>
+                <p class="text-xs text-muted" id="modalExcelMeta">Desarrollo práctico y formulación del candidato</p>
+              </div>
+            </div>
+            <div class="excel-header-actions">
+              <button type="button" class="btn btn-success btn-sm" id="btnDownloadCandidateExcel" title="Descargar libro Excel original con fórmulas del candidato">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Descargar Excel (.xlsx)</span>
+              </button>
+            </div>
           </div>
         </div>
 

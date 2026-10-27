@@ -156,6 +156,7 @@ const AppState = {
   candidateMeta: null,
   isExamActive: false,
   isBlocked: false,
+  attachedExcelFile: null,
   autosaveTimer: null,
   adminData: [],
   adminFilter: 'ALL',
@@ -187,6 +188,19 @@ const DOM = {
   acceptDataProtectionCheck: document.getElementById('acceptDataProtectionCheck'),
   technicalExamForm: document.getElementById('technicalExamForm'),
   btnSubmitExam: document.getElementById('btnSubmitExam'),
+
+  // Elementos de Anexo Excel
+  inputExcelFile: document.getElementById('inputExcelFile'),
+  excelDropZone: document.getElementById('excelDropZone'),
+  dropzonePrompt: document.getElementById('dropzonePrompt'),
+  btnBrowseExcel: document.getElementById('btnBrowseExcel'),
+  filePreviewCard: document.getElementById('filePreviewCard'),
+  previewFileName: document.getElementById('previewFileName'),
+  previewFileSize: document.getElementById('previewFileSize'),
+  btnRemoveExcelFile: document.getElementById('btnRemoveExcelFile'),
+  modalExcelCard: document.getElementById('modalExcelCard'),
+  modalExcelMeta: document.getElementById('modalExcelMeta'),
+  btnDownloadCandidateExcel: document.getElementById('btnDownloadCandidateExcel'),
 
   // Elementos de Cabecera y Examen
   headerCandidateName: document.getElementById('headerCandidateName'),
@@ -656,18 +670,16 @@ const AntiFraudSystem = {
 
   init() {
     this.eventHandlers = {
-      // 1. Cambio de pestaña / minimización
+      // 1. Cambio de pestaña / visibilidad (Autorizado para usar Microsoft Excel)
       visibilityChange: () => {
-        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
-        if (document.hidden) {
-          this.triggerBlock('Cambio de pestaña o minimización del navegador detectado (visibilitychange).');
-        }
+        // En modo Excel autorizado no se bloquea por alternar ventana o minimizar.
+        // La supervisión se realiza mediante grabación obligatoria e ininterrumpida de pantalla completa (Ley 1581).
       },
 
-      // 2. Pérdida de foco de ventana (Alt+Tab, otra pantalla, app externa)
+      // 2. Pérdida de foco de ventana (Autorizado para operar en Microsoft Excel)
       windowBlur: () => {
-        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
-        this.triggerBlock('Pérdida de foco de la ventana detectada (abrió otra ventana, aplicación o monitor secundario).');
+        // En modo Excel autorizado no se bloquea por pérdida de foco.
+        // Todo lo que ocurra en el monitor continúa registrándose en video continuo de auditoría.
       },
 
       // 3. Intento de recargar o abandonar la página
@@ -697,22 +709,35 @@ const AntiFraudSystem = {
       // 6. Intento de copiar
       copy: (e) => {
         if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
+        const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+        if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
+          // Permitir copiar contenido propio en campos de respuesta
+          return;
+        }
         e.preventDefault();
-        this.triggerBlock('Intento de copiar texto de la prueba (evento copy detectado).');
+        showToast('Acción Restringida', 'El copiado de preguntas está protegido durante la evaluación.', 'warning');
       },
 
       // 7. Intento de cortar
       cut: (e) => {
         if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
+        const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+        if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
+          return;
+        }
         e.preventDefault();
-        this.triggerBlock('Intento de cortar texto (evento cut detectado).');
       },
 
-      // 8. Intento de pegar (incluso en inputs o textareas)
+      // 8. Pegado controlado (Permite pegar cifras y cálculos en inputs y textareas)
       paste: (e) => {
         if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
+        const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+        if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
+          // Permitir pegar cifras calculadas o números desde Excel
+          return;
+        }
         e.preventDefault();
-        this.triggerBlock('Intento de pegar contenido externo en el examen (evento paste detectado).');
+        showToast('Acción Restringida', 'Solo puede pegar contenido dentro de los campos de respuesta.', 'warning');
       },
 
       // 9. Clic derecho / menú contextual neutralizado (sin anulación accidental por touchpad)
@@ -721,7 +746,7 @@ const AntiFraudSystem = {
         e.preventDefault();
         showToast(
           'Acción Restringida',
-          'El menú contextual y la copia de contenido están inhabilitados durante la evaluación técnica.',
+          'El menú contextual está inhabilitado durante la evaluación técnica.',
           'warning'
         );
       },
@@ -732,30 +757,15 @@ const AntiFraudSystem = {
         const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
         if (targetTag !== 'INPUT' && targetTag !== 'TEXTAREA') {
           e.preventDefault();
-          this.triggerBlock('Intento de seleccionar texto protegido de las preguntas fuera de los campos de respuesta.');
         }
       },
 
-      // 11. Atajos de teclado bloqueados (F12, F11, Esc, Ctrl+Shift+I, Ctrl+C, Ctrl+V, etc.)
+      // 11. Atajos de teclado bloqueados (F12, DevTools, Ctrl+U, etc.)
       keyDown: (e) => {
         if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
 
         const isCtrlOrCmd = e.ctrlKey || e.metaKey;
         const key = e.key.toUpperCase();
-
-        // F11 (Pantalla completa alterada)
-        if (e.key === 'F11') {
-          e.preventDefault();
-          this.triggerBlock('Intento de alterar o salir del modo de pantalla completa con la tecla F11.');
-          return;
-        }
-
-        // Tecla Escape (Salir de pantalla completa)
-        if (e.key === 'Escape' || e.key === 'Esc') {
-          e.preventDefault();
-          this.triggerBlock('Intento de salir de pantalla completa o minimizar mediante la tecla Escape (Esc).');
-          return;
-        }
 
         // F12 (Herramientas de desarrollo)
         if (e.key === 'F12') {
@@ -780,15 +790,23 @@ const AntiFraudSystem = {
 
         // Ctrl+C (Copiar)
         if (isCtrlOrCmd && key === 'C') {
+          const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+          if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
+            return; // Permitir copiar en sus propios campos de respuesta
+          }
           e.preventDefault();
-          this.triggerBlock('Intento de copiar texto mediante atajo de teclado (Ctrl+C).');
+          showToast('Acción Restringida', 'El copiado de preguntas está protegido.', 'warning');
           return;
         }
 
         // Ctrl+V (Pegar)
         if (isCtrlOrCmd && key === 'V') {
+          const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+          if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
+            return; // Permitir pegar en sus campos de respuesta
+          }
           e.preventDefault();
-          this.triggerBlock('Intento de pegar contenido mediante atajo de teclado (Ctrl+V).');
+          showToast('Acción Restringida', 'Solo puede pegar dentro de los campos de respuesta.', 'warning');
           return;
         }
 
@@ -806,30 +824,14 @@ const AntiFraudSystem = {
           return;
         }
 
-        // Alt + Tab
-        if (e.altKey && (e.key === 'Tab' || key === 'TAB')) {
-          e.preventDefault();
-          this.triggerBlock('Intento de cambiar de ventana con Alt+Tab.');
-          return;
-        }
+        // Alt + Tab está autorizado para alternar con Microsoft Excel.
+        // No llamamos preventDefault ni triggerBlock para que Windows conmute de ventana naturalmente.
       },
 
-      // 12. Salida de pantalla completa o minimización del navegador
+      // 12. Salida de pantalla completa o minimización (Autorizada para ver Excel y barra de tareas)
       fullscreenChange: () => {
-        if (!AppState.isExamActive || AppState.isBlocked || this.isPaused) return;
-        // Período de gracia inicial de 2.5s para permitir la transición fluida del navegador a pantalla completa
-        if (this.activatedAt && (Date.now() - this.activatedAt < 2500)) return;
-
-        const isFullScreen = Boolean(
-          document.fullscreenElement || 
-          document.webkitFullscreenElement || 
-          document.mozFullScreenElement || 
-          document.msFullscreenElement
-        );
-
-        if (!isFullScreen) {
-          this.triggerBlock('El candidato salió del modo de pantalla completa obligatoria o intentó minimizar la ventana.');
-        }
+        // En modo Excel autorizado, salir de pantalla completa no anula la prueba.
+        // La supervisión estricta se garantiza mediante la grabación obligatoria e ininterrumpida de pantalla completa en video.
       }
     };
   },
@@ -1151,18 +1153,200 @@ const ScreenAudioRecorder = {
 };
 
 // ==============================================================================
+// 7.2 MÓDULO DE GESTIÓN Y ADJUNCIÓN DE ARCHIVO EXCEL (.XLSX)
+// ==============================================================================
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
+function downloadCandidateExcelFile(excelMeta, candidateName, candidateCedula) {
+  if (!excelMeta) return;
+  const safeName = (candidateName || 'Candidato').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_-]/g, '_');
+  const originalName = excelMeta.nombre || 'calculos_nomina.xlsx';
+  const downloadFileName = `Prueba_Excel_${candidateCedula || '000'}_${safeName}_${originalName}`;
+
+  if (excelMeta.data_base64) {
+    try {
+      const parts = excelMeta.data_base64.split(';base64,');
+      const contentType = parts[0].split(':')[1] || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      const byteCharacters = atob(parts[1]);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = downloadFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      showToast('Descarga Iniciada', `Descargando libro Excel de ${candidateName}...`, 'success');
+      return;
+    } catch (e) {
+      console.error('Error al decodificar archivo Excel base64:', e);
+    }
+  }
+
+  if (excelMeta.url) {
+    const link = document.createElement('a');
+    link.href = excelMeta.url;
+    link.target = '_blank';
+    link.download = downloadFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Descarga Iniciada', 'Abriendo libro Excel...', 'success');
+  }
+}
+
+async function handleExcelFileSelected(file) {
+  if (!file) return;
+
+  const validExts = ['.xlsx', '.xls', '.xlsm', '.csv'];
+  const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+  if (!validExts.includes(ext)) {
+    showToast('Formato No Válido', 'Solo se admiten libros de Excel (.xlsx, .xls) o archivos .csv.', 'warning');
+    return;
+  }
+
+  const maxBytes = 25 * 1024 * 1024; // 25 MB
+  if (file.size > maxBytes) {
+    showToast('Archivo Muy Pesado', 'El archivo no puede exceder los 25 MB.', 'warning');
+    return;
+  }
+
+  try {
+    showToast('Cargando Excel', 'Leyendo y preparando archivo de trabajo...', 'info');
+    const base64 = await readFileAsBase64(file);
+
+    AppState.attachedExcelFile = {
+      name: file.name,
+      size: file.size,
+      type: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      base64: base64,
+      uploadedAt: new Date().toISOString()
+    };
+
+    // Actualizar vista previa en el cuestionario
+    if (DOM.dropzonePrompt) DOM.dropzonePrompt.classList.add('hidden');
+    if (DOM.filePreviewCard) DOM.filePreviewCard.classList.remove('hidden');
+    if (DOM.previewFileName) DOM.previewFileName.textContent = file.name;
+    if (DOM.previewFileSize) {
+      const kb = (file.size / 1024).toFixed(1);
+      DOM.previewFileSize.textContent = `${kb} KB`;
+    }
+
+    showToast('Excel Adjunto', `Archivo "${file.name}" cargado exitosamente.`, 'success');
+    triggerAutosave();
+  } catch (err) {
+    console.error('Error procesando archivo Excel:', err);
+    showToast('Error', 'No se pudo leer el archivo seleccionado.', 'error');
+  }
+}
+
+function setupExcelUploadHandlers() {
+  if (!DOM.excelDropZone) return;
+
+  // Clic en la zona o botón para abrir selector
+  const triggerFileInput = () => {
+    if (DOM.inputExcelFile) DOM.inputExcelFile.click();
+  };
+
+  DOM.excelDropZone.addEventListener('click', (e) => {
+    // Si hizo clic en el botón de quitar, no abrir selector
+    if (e.target && e.target.closest('#btnRemoveExcelFile')) return;
+    // Si ya hay archivo cargado y dio clic en la tarjeta, permitir cambiarlo
+    triggerFileInput();
+  });
+
+  if (DOM.btnBrowseExcel) {
+    DOM.btnBrowseExcel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      triggerFileInput();
+    });
+  }
+
+  if (DOM.inputExcelFile) {
+    DOM.inputExcelFile.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        handleExcelFileSelected(file);
+      }
+    });
+  }
+
+  // Quitar archivo
+  if (DOM.btnRemoveExcelFile) {
+    DOM.btnRemoveExcelFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      AppState.attachedExcelFile = null;
+      if (DOM.inputExcelFile) DOM.inputExcelFile.value = '';
+      if (DOM.filePreviewCard) DOM.filePreviewCard.classList.add('hidden');
+      if (DOM.dropzonePrompt) DOM.dropzonePrompt.classList.remove('hidden');
+      showToast('Archivo Removido', 'Se ha retirado el archivo Excel adjunto.', 'info');
+      triggerAutosave();
+    });
+  }
+
+  // Arrastrar y Soltar (Drag & Drop)
+  ['dragenter', 'dragover'].forEach(evtName => {
+    DOM.excelDropZone.addEventListener(evtName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      DOM.excelDropZone.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach(evtName => {
+    DOM.excelDropZone.addEventListener(evtName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      DOM.excelDropZone.classList.remove('dragover');
+    });
+  });
+
+  DOM.excelDropZone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    if (dt && dt.files && dt.files.length > 0) {
+      handleExcelFileSelected(dt.files[0]);
+    }
+  });
+}
+
+// ==============================================================================
 // 8. GESTIÓN DEL CUESTIONARIO Y RESPUESTAS
 // ==============================================================================
 function collectCurrentAnswers() {
   const answers = {};
   if (!DOM.technicalExamForm) return answers;
 
-  const inputs = DOM.technicalExamForm.querySelectorAll('input, textarea');
+  // Solo recopilar campos de preguntas y respuestas, excluyendo el selector de archivo
+  const inputs = DOM.technicalExamForm.querySelectorAll('input:not([type="file"]), textarea');
   inputs.forEach(input => {
     if (input.name && input.id) {
       answers[input.id] = input.value.trim();
     }
   });
+
+  // Adjuntar metadatos del archivo Excel si el candidato lo cargó
+  if (AppState.attachedExcelFile) {
+    answers._archivo_excel = {
+      nombre: AppState.attachedExcelFile.name,
+      tamano: AppState.attachedExcelFile.size,
+      tipo: AppState.attachedExcelFile.type,
+      fecha_subida: AppState.attachedExcelFile.uploadedAt,
+      data_base64: AppState.attachedExcelFile.base64
+    };
+  }
 
   if (ExamTimer.startTime) {
     answers._exam_start_time = ExamTimer.startTime;
@@ -1176,7 +1360,7 @@ function collectCurrentAnswers() {
 function updateProgress() {
   if (!DOM.technicalExamForm) return;
 
-  const inputs = DOM.technicalExamForm.querySelectorAll('input, textarea');
+  const inputs = DOM.technicalExamForm.querySelectorAll('input:not([type="file"]), textarea');
   let answered = 0;
   inputs.forEach(input => {
     if (input.value && input.value.trim().length > 0) {
@@ -1286,6 +1470,30 @@ function startExamView(candidate, existingAnswers = {}, remainingSeconds = null)
         field.value = existingAnswers[key];
       }
     });
+  }
+
+  // Restaurar archivo Excel adjunto si existía
+  const savedExcel = (existingAnswers && existingAnswers._archivo_excel) || (candidate.respuestas && candidate.respuestas._archivo_excel);
+  if (savedExcel) {
+    AppState.attachedExcelFile = {
+      name: savedExcel.nombre,
+      size: savedExcel.tamano,
+      type: savedExcel.tipo,
+      uploadedAt: savedExcel.fecha_subida,
+      base64: savedExcel.data_base64
+    };
+    if (DOM.dropzonePrompt) DOM.dropzonePrompt.classList.add('hidden');
+    if (DOM.filePreviewCard) DOM.filePreviewCard.classList.remove('hidden');
+    if (DOM.previewFileName) DOM.previewFileName.textContent = savedExcel.nombre || 'archivo_adjunto.xlsx';
+    if (DOM.previewFileSize && savedExcel.tamano) {
+      const kb = (savedExcel.tamano / 1024).toFixed(1);
+      DOM.previewFileSize.textContent = `${kb} KB`;
+    }
+  } else {
+    AppState.attachedExcelFile = null;
+    if (DOM.inputExcelFile) DOM.inputExcelFile.value = '';
+    if (DOM.filePreviewCard) DOM.filePreviewCard.classList.add('hidden');
+    if (DOM.dropzonePrompt) DOM.dropzonePrompt.classList.remove('hidden');
   }
 
   updateProgress();
@@ -1769,6 +1977,7 @@ function renderAdminDashboard() {
       scorePillHtml = `<div style="margin-top:6px;"><span class="score-pill-table ${pillClass}">⭐ Calificación: ${pct}% (${gradingData.puntos}/38)</span></div>`;
     }
 
+    const hasExcel = Boolean(item.archivo_excel_url || (item.respuestas && item.respuestas._archivo_excel));
     const isResetEligible = item.estado === 'BLOQUEADO' || item.estado === 'EN_CURSO';
 
     return `
@@ -1786,6 +1995,7 @@ function renderAdminDashboard() {
         <td>
           ${statusBadge}
           ${scorePillHtml}
+          ${hasExcel ? `<div style="margin-top:4px;"><span class="badge-excel" title="El candidato adjuntó libro de cálculo en Excel">📊 Excel Adjunto</span></div>` : ''}
         </td>
         <td>
           ${item.motivo_bloqueo
@@ -1892,6 +2102,7 @@ async function openResponsesModal(cedula) {
           <div class="dossier-row"><span class="dossier-label">Fecha y Hora de Examen:</span> <span class="dossier-val">${formatDate(candidate.fecha)}</span></div>
           <div class="dossier-row"><span class="dossier-label">Estado de la Prueba:</span> <span class="dossier-val-badge ${candidate.estado.toLowerCase()}">${escapeHtml(candidate.estado)}</span></div>
           <div class="dossier-row"><span class="dossier-label">Supervisión y Seguridad:</span> <span class="dossier-val">Grabación de pantalla, audio y cámara facial (Ley 1581/2012)</span></div>
+          <div class="dossier-row"><span class="dossier-label">Hoja de Cálculo Excel:</span> <span class="dossier-val">${(candidate.respuestas && candidate.respuestas._archivo_excel) ? `Adjuntado (${escapeHtml(candidate.respuestas._archivo_excel.nombre || 'archivo.xlsx')})` : 'No adjuntó archivo'}</span></div>
           <div class="dossier-row"><span class="dossier-label">Evaluador(a) Oficial:</span> <span class="dossier-val">Dirección de Talento Humano · Paola</span></div>
         </div>
       </div>
@@ -1961,6 +2172,23 @@ async function openResponsesModal(cedula) {
       DOM.modalRecordingPlayer.pause();
       DOM.modalRecordingPlayer.src = '';
     }
+  }
+
+  // Configuración del archivo Excel adjunto del candidato
+  const candidateExcel = (candidate.respuestas && candidate.respuestas._archivo_excel) || null;
+  if (candidateExcel && (candidateExcel.data_base64 || candidateExcel.url)) {
+    if (DOM.modalExcelCard) DOM.modalExcelCard.classList.remove('hidden');
+    if (DOM.modalExcelMeta) {
+      const sizeText = candidateExcel.tamano ? (candidateExcel.tamano / 1024).toFixed(1) + ' KB' : 'Válido';
+      DOM.modalExcelMeta.textContent = `Archivo: ${escapeHtml(candidateExcel.nombre || 'calculos.xlsx')} (${sizeText}) · Adjuntado para respaldar fórmulas`;
+    }
+    if (DOM.btnDownloadCandidateExcel) {
+      DOM.btnDownloadCandidateExcel.onclick = () => {
+        downloadCandidateExcelFile(candidateExcel, candidate.nombre, candidate.cedula);
+      };
+    }
+  } else {
+    if (DOM.modalExcelCard) DOM.modalExcelCard.classList.add('hidden');
   }
 
   const scrollContainer = document.getElementById('modalResponsesScrollContainer');
@@ -2622,6 +2850,9 @@ function initApp() {
   if (DOM.btnSubmitExam) {
     DOM.btnSubmitExam.addEventListener('click', () => handleSubmitExam(false));
   }
+
+  // Inicializar manejadores para subida de archivo Excel
+  setupExcelUploadHandlers();
 }
 
 // ==============================================================================
