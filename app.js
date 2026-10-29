@@ -966,8 +966,19 @@ const ScreenAudioRecorder = {
       audio: false
     });
 
-    // Supervisión antifraude: Si el candidato detiene la compartición de pantalla
+    // Supervisión antifraude: Exigir que seleccione "Toda la pantalla" (monitor completo) y no solo una pestaña/ventana
     const videoTrack = this.screenStream.getVideoTracks()[0];
+    if (videoTrack && typeof videoTrack.getSettings === 'function') {
+      const settings = videoTrack.getSettings();
+      if (settings && settings.displaySurface && settings.displaySurface !== 'monitor') {
+        this.stopStreams();
+        const surfaceErr = new Error('Debe compartir TODA LA PANTALLA (no solo una pestaña o ventana).');
+        surfaceErr.code = 'NOT_FULL_MONITOR';
+        throw surfaceErr;
+      }
+    }
+
+    // Supervisión antifraude: Si el candidato detiene la compartición de pantalla
     if (videoTrack) {
       videoTrack.addEventListener('ended', () => {
         if (AppState.isExamActive && !AppState.isBlocked) {
@@ -1337,7 +1348,7 @@ function collectCurrentAnswers() {
     }
   });
 
-  // Adjuntar metadatos del archivo Excel si el candidato lo cargó
+  // Adjuntar metadatos del archivo Excel si el candidato lo cargó (o limpiar si lo removió)
   if (AppState.attachedExcelFile) {
     answers._archivo_excel = {
       nombre: AppState.attachedExcelFile.name,
@@ -1346,6 +1357,8 @@ function collectCurrentAnswers() {
       fecha_subida: AppState.attachedExcelFile.uploadedAt,
       data_base64: AppState.attachedExcelFile.base64
     };
+  } else {
+    answers._archivo_excel = null;
   }
 
   if (ExamTimer.startTime) {
@@ -1620,7 +1633,7 @@ async function handleCandidateLogin(e) {
     }
     showToast(
       'Casilla Obligatoria Requerida',
-      'Debe marcar la casilla confirmando que leyó las normas y prohibiciones (incluyendo la prohibición estricta de clic derecho y cambio de pestaña) para poder comenzar la prueba.',
+      'Debe marcar la casilla confirmando que leyó las normas vigentes (uso autorizado de Excel local, grabación continua de toda la pantalla y prohibición estricta de IAs o buscadores) para comenzar.',
       'warning'
     );
     if (DOM.acceptSupervisionCheck) DOM.acceptSupervisionCheck.focus();
@@ -1716,15 +1729,14 @@ async function handleCandidateLogin(e) {
       if (serverCheck.status === 'EN_CURSO') {
         // Solicitar permisos de grabación de pantalla y audio antes de ingresar al examen
         try {
-          showToast('Iniciando Grabación', 'Por favor seleccione "Pantalla completa" en el diálogo del navegador...', 'info');
+          showToast('Iniciando Grabación', 'Por favor seleccione "Toda la pantalla" en el diálogo del navegador...', 'info');
           await ScreenAudioRecorder.requestPermissionsAndStart();
         } catch (mediaErr) {
           console.warn('Permisos de grabación denegados o cancelados:', mediaErr);
-          showToast(
-            'Permiso Obligatorio',
-            'Debe autorizar compartir la pantalla completa y micrófono para cumplir el protocolo antifraude y la Ley 1581.',
-            'error'
-          );
+          const msg = (mediaErr && mediaErr.code === 'NOT_FULL_MONITOR')
+            ? 'Debe seleccionar obligatoriamente la pestaña "Toda la pantalla" (no una pestaña ni una ventana individual) para supervisar el uso de Excel.'
+            : 'Debe autorizar compartir toda la pantalla y micrófono para cumplir el protocolo antifraude y la Ley 1581.';
+          showToast('Compartir Toda la Pantalla es Obligatorio', msg, 'error');
           return;
         }
 
@@ -1787,7 +1799,10 @@ async function handleCandidateLogin(e) {
         try {
           await ScreenAudioRecorder.requestPermissionsAndStart();
         } catch (mediaErr) {
-          showToast('Permiso Obligatorio', 'Debe autorizar pantalla completa y micrófono para continuar.', 'error');
+          const msg = (mediaErr && mediaErr.code === 'NOT_FULL_MONITOR')
+            ? 'Debe seleccionar obligatoriamente "Toda la pantalla" (no una pestaña ni una ventana individual) para continuar.'
+            : 'Debe autorizar compartir toda la pantalla y micrófono para continuar.';
+          showToast('Compartir Toda la Pantalla es Obligatorio', msg, 'error');
           return;
         }
         startExamView(existing, existing.respuestas || {});
@@ -1799,7 +1814,10 @@ async function handleCandidateLogin(e) {
     try {
       await ScreenAudioRecorder.requestPermissionsAndStart();
     } catch (mediaErr) {
-      showToast('Permiso Obligatorio', 'Debe autorizar pantalla completa y micrófono para iniciar la prueba.', 'error');
+      const msg = (mediaErr && mediaErr.code === 'NOT_FULL_MONITOR')
+        ? 'Debe seleccionar obligatoriamente "Toda la pantalla" (no una pestaña ni una ventana individual) para iniciar la prueba.'
+        : 'Debe autorizar compartir toda la pantalla y micrófono para iniciar la prueba.';
+      showToast('Compartir Toda la Pantalla es Obligatorio', msg, 'error');
       return;
     }
 
