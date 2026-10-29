@@ -3,13 +3,12 @@
 // Endpoint: /api/admin-auth
 // ==============================================================================
 const crypto = require('crypto');
+const { generateSessionToken } = require('./_utils');
 
-// Secret salt para firma HMAC de tokens de sesión
-const AUTH_SECRET = process.env.ADMIN_AUTH_SECRET || 'LP_SECURE_SALT_2026_PAOLA_LOZADA';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'paola2026';
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'paola';
+const ADMIN_USERNAME = (process.env.ADMIN_USERNAME || 'paola').trim().toLowerCase();
+const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD || 'paola2026').trim();
 
-// Almacén simple en memoria para control de intentos de fuerza bruta
+// Almacén en memoria para control de intentos de fuerza bruta
 const loginAttempts = new Map();
 
 function isRateLimited(ip) {
@@ -17,7 +16,6 @@ function isRateLimited(ip) {
   const record = loginAttempts.get(ip);
   if (!record) return false;
 
-  // Si pasaron más de 10 minutos, reiniciar
   if (now - record.startTime > 10 * 60 * 1000) {
     loginAttempts.delete(ip);
     return false;
@@ -37,16 +35,13 @@ function clearAttempts(ip) {
   loginAttempts.delete(ip);
 }
 
-function generateSessionToken(username) {
-  // Token HMAC válido por bloques de 12 horas
-  const timeBlock = Math.floor(Date.now() / (1000 * 60 * 60 * 12));
-  const payload = `${username}:${timeBlock}`;
-  const signature = crypto.createHmac('sha256', AUTH_SECRET).update(payload).digest('hex');
-  return Buffer.from(`${payload}:${signature}`).toString('base64');
+function safeCompare(a, b) {
+  const hashA = crypto.createHash('sha256').update(String(a || '')).digest();
+  const hashB = crypto.createHash('sha256').update(String(b || '')).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
 }
 
 module.exports = async (req, res) => {
-  // Configuración de encabezados de seguridad CORS y JSON
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -55,7 +50,10 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Método no permitido. Solo POST.' });
   }
 
-  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  const rawForwarded = req.headers && req.headers['x-forwarded-for'];
+  const clientIp = (Array.isArray(rawForwarded) ? rawForwarded[0] : String(rawForwarded || '')).split(',')[0].trim()
+    || (req.socket && req.socket.remoteAddress)
+    || 'unknown';
 
   if (isRateLimited(clientIp)) {
     return res.status(429).json({
@@ -65,25 +63,23 @@ module.exports = async (req, res) => {
 
   try {
     const { username, password } = req.body || {};
-    const inputUser = (username || '').trim().toLowerCase();
-    const inputPass = (password || '').trim();
+    const inputUser = String(username || '').trim().toLowerCase();
+    const inputPass = String(password || '').trim();
 
-    // Verificación estricta de usuario y contraseña
-    const isValidUser = inputUser === ADMIN_USERNAME || inputUser === 'paola';
-    const isValidPass = inputPass === ADMIN_PASSWORD || inputPass === 'paola2026' || inputPass === 'paola';
+    // Verificación estricta en tiempo constante contra variables de entorno (sin puertas traseras fijas)
+    const isValidUser = safeCompare(inputUser, ADMIN_USERNAME);
+    const isValidPass = safeCompare(inputPass, ADMIN_PASSWORD);
 
     if (!isValidUser || !isValidPass) {
       recordFailedAttempt(clientIp);
-      // Retardo deliberado de 400ms para prevenir ataques de temporización
       await new Promise(r => setTimeout(r, 400));
       return res.status(401).json({
         error: 'Credenciales inválidas. Acceso restringido al personal autorizado de Recursos Humanos.'
       });
     }
 
-    // Éxito: limpiar intentos y generar token seguro
     clearAttempts(clientIp);
-    const token = generateSessionToken('paola');
+    const token = generateSessionToken(ADMIN_USERNAME);
 
     return res.status(200).json({
       success: true,

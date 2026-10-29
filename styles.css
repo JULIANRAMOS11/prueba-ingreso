@@ -11,6 +11,7 @@
   --primary-700: #1d4ed8;
   --primary-600: #2563eb;
   --primary-500: #3b82f6;
+  --primary-200: #bfdbfe;
   --primary-100: #dbeafe;
   --primary-50:  #eff6ff;
 
@@ -26,10 +27,12 @@
   --slate-100: #f1f5f9;
   --slate-50:  #f8fafc;
   --white:      #ffffff;
+  --card-bg:    #ffffff;
 
   /* Estados Semánticos */
   --danger-900: #7f1d1d;
   --danger-800: #991b1b;
+  --danger-700: #b91c1c;
   --danger-600: #dc2626;
   --danger-500: #ef4444;
   --danger-100: #fee2e2;
@@ -2059,22 +2062,28 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--slate-50);
 }
 
-.btn-grade-opt.active-correct {
+.btn-grade-opt.active-correct,
+.btn-grade-opt.grade-correct.active {
   background: #dcfce7;
   border-color: #22c55e;
   color: #15803d;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
 }
 
-.btn-grade-opt.active-partial {
+.btn-grade-opt.active-partial,
+.btn-grade-opt.grade-partial.active {
   background: #fef3c7;
   border-color: #f59e0b;
   color: #b45309;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
 }
 
-.btn-grade-opt.active-wrong {
+.btn-grade-opt.active-wrong,
+.btn-grade-opt.grade-wrong.active {
   background: #fee2e2;
   border-color: #ef4444;
   color: #b91c1c;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
 .btn-delete-candidate {
@@ -2099,6 +2108,55 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #eff6ff;
   color: #1d4ed8;
   border: 1px solid #bfdbfe;
+}
+
+.score-pill-table.high {
+  background-color: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.score-pill-table.mid {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+
+.score-pill-table.low {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.table-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 135px;
+}
+
+.table-progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--slate-700);
+}
+
+.table-progress-track {
+  width: 100%;
+  height: 6px;
+  background-color: var(--slate-200);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.table-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-600), var(--success-500));
+  border-radius: var(--radius-full);
+  transition: width 0.3s ease;
 }
 
 /* ==============================================================================
@@ -2487,19 +2545,19 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Banner de Excel Habilitado */
 .anti-cheat-mini-banner.excel-enabled-banner {
-  background: linear-gradient(135deg, rgba(16, 124, 65, 0.12) 0%, rgba(30, 41, 59, 0.7) 100%);
-  border: 1px solid rgba(16, 124, 65, 0.35);
-  color: #86efac;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
 }
 
 .anti-cheat-mini-banner.excel-enabled-banner svg {
-  color: #22c55e;
+  color: #059669;
   flex-shrink: 0;
 }
 
 .anti-cheat-mini-banner.excel-enabled-banner code {
-  background: rgba(16, 124, 65, 0.3);
-  color: #ffffff;
+  background: #d1fae5;
+  color: #064e3b;
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 0.8rem;
@@ -2514,9 +2572,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .section-tag-excel {
-  background: rgba(16, 124, 65, 0.18) !important;
-  color: #4ade80 !important;
-  border: 1px solid rgba(16, 124, 65, 0.35) !important;
+  background: #dcfce7 !important;
+  color: #166534 !important;
+  border: 1px solid #86efac !important;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-sm);
 }
 
 .excel-badge {
@@ -2719,9 +2779,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .badge-excel {
-  background: rgba(16, 124, 65, 0.15);
-  color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
   font-size: 0.72rem;
   font-weight: 700;
   padding: 3px 8px;

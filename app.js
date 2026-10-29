@@ -157,6 +157,8 @@ const AppState = {
   isExamActive: false,
   isBlocked: false,
   attachedExcelFile: null,
+  excelDirty: false,
+  isUploadingRecording: false,
   autosaveTimer: null,
   adminData: [],
   adminFilter: 'ALL',
@@ -810,17 +812,17 @@ const AntiFraudSystem = {
           return;
         }
 
-        // Ctrl+P (Imprimir)
+        // Ctrl+P (Imprimir neutralizado sin bloqueo por memoria muscular)
         if (isCtrlOrCmd && key === 'P') {
           e.preventDefault();
-          this.triggerBlock('Intento de imprimir la prueba técnica (Ctrl+P).');
+          showToast('Acción Restringida', 'La impresión de la prueba técnica está deshabilitada.', 'warning');
           return;
         }
 
-        // Ctrl+S (Guardar página)
+        // Ctrl+S (Guardar página neutralizado: evita falsos positivos al alternar con Excel)
         if (isCtrlOrCmd && key === 'S') {
           e.preventDefault();
-          this.triggerBlock('Intento de guardar la página en almacenamiento local (Ctrl+S).');
+          showToast('Autoguardado Activo', 'Sus respuestas en la plataforma se guardan automáticamente en tiempo real.', 'info');
           return;
         }
 
@@ -855,7 +857,7 @@ const AntiFraudSystem = {
     document.addEventListener('webkitfullscreenchange', this.eventHandlers.fullscreenChange);
     document.addEventListener('mozfullscreenchange', this.eventHandlers.fullscreenChange);
     document.addEventListener('MSFullscreenChange', this.eventHandlers.fullscreenChange);
-    console.log('🛡️ Sistema Antifraude Estricto ACTIVADO (Pantalla Completa Enforced).');
+    console.log('🛡️ Sistema Antifraude Estricto ACTIVADO.');
   },
 
   deactivate() {
@@ -883,7 +885,7 @@ const AntiFraudSystem = {
     AppState.isBlocked = true;
     AppState.isExamActive = false;
 
-    // Desactivar inmediatamente para no disparar llamadas en bucle
+    clearTimeout(AppState.autosaveTimer);
     this.deactivate();
     ExamTimer.stop();
     exitFullScreenMode();
@@ -891,11 +893,25 @@ const AntiFraudSystem = {
     console.error('🚨 BLOQUEO ANTIFRAUDE DISPARADO:', reason);
 
     // 1. Recoger respuestas parciales que llevaba hasta este segundo
-    const partialAnswers = collectCurrentAnswers();
+    const partialAnswers = collectCurrentAnswers({ includeExcelPayload: true });
     const candidateCedula = AppState.currentCandidate ? AppState.currentCandidate.cedula : 'DESCONOCIDA';
     const candidateNombre = AppState.currentCandidate ? AppState.currentCandidate.nombre : 'CANDIDATO';
 
-    // 2. Guardar estado de bloqueo mediante API segura del servidor
+    // 2. Almacenar estado de bloqueo en sessionStorage inmediatamente
+    sessionStorage.setItem('LP_BLOCKED_CEDULA', candidateCedula);
+    sessionStorage.setItem('LP_BLOCKED_REASON', reason);
+    sessionStorage.setItem('LP_BLOCKED_NAME', candidateNombre);
+    sessionStorage.setItem('LP_BLOCKED_TIMESTAMP', new Date().toISOString());
+
+    // 3. Mostrar pantalla roja inmediata de anulación
+    renderBlockedView({
+      nombre: candidateNombre,
+      cedula: candidateCedula,
+      motivo_bloqueo: reason,
+      fecha: new Date().toISOString()
+    });
+
+    // 4. Guardar estado de bloqueo mediante API segura del servidor
     try {
       const serverBlock = await DatabaseService.candidateAction('block', {
         cedula: candidateCedula,
@@ -909,33 +925,58 @@ const AntiFraudSystem = {
           respuestas: partialAnswers
         });
       }
+      AppState.excelDirty = false;
     } catch (err) {
       console.error('Error al actualizar bloqueo:', err);
     }
 
-    // 3. Almacenar estado de bloqueo en sessionStorage para que si el candidato recarga con F5,
-    // vuelva a mostrar la pantalla roja inmediatamente
-    sessionStorage.setItem('LP_BLOCKED_CEDULA', candidateCedula);
-    sessionStorage.setItem('LP_BLOCKED_REASON', reason);
-    sessionStorage.setItem('LP_BLOCKED_NAME', candidateNombre);
-    sessionStorage.setItem('LP_BLOCKED_TIMESTAMP', new Date().toISOString());
-
-    // 4. Mostrar pantalla roja inmediata de anulación
-    renderBlockedView({
-      nombre: candidateNombre,
-      cedula: candidateCedula,
-      motivo_bloqueo: reason,
-      fecha: new Date().toISOString()
-    });
-
-    // 5. Detener y subir la grabación de pantalla acumulada (auditoría Ley 1581)
-    if (typeof ScreenAudioRecorder !== 'undefined') {
-      ScreenAudioRecorder.stopAndUpload(candidateCedula).catch(e => {
-        console.warn('Fallo al subir grabación tras bloqueo:', e);
-      });
-    }
+    // 5. Detener y subir la grabación de pantalla acumulada protegiendo contra cierre prematuro
+    await syncRecordingWithUnloadGuard(candidateCedula, 'blocked');
   }
 };
+
+async function syncRecordingWithUnloadGuard(candidateCedula, viewMode = 'finished') {
+  if (typeof ScreenAudioRecorder === 'undefined' || !ScreenAudioRecorder.isRecording || !candidateCedula) {
+    return;
+  }
+
+  const syncBox = viewMode === 'blocked'
+    ? document.getElementById('blockedRecordingSyncBox')
+    : document.getElementById('finishedRecordingSyncRow');
+  const syncText = viewMode === 'blocked'
+    ? document.getElementById('blockedRecordingSyncText')
+    : document.getElementById('finishedRecordingSyncText');
+
+  if (syncBox) syncBox.classList.remove('hidden');
+  if (syncText) {
+    syncText.textContent = '⏳ Subiendo grabación de auditoría (por favor no cierre esta pestaña)...';
+  }
+
+  AppState.isUploadingRecording = true;
+  const unloadGuard = (e) => {
+    if (!AppState.isUploadingRecording) return;
+    const msg = 'La grabación de auditoría aún se está guardando. Espere unos segundos antes de cerrar.';
+    e.preventDefault();
+    e.returnValue = msg;
+    return msg;
+  };
+  window.addEventListener('beforeunload', unloadGuard);
+
+  try {
+    const res = await ScreenAudioRecorder.stopAndUpload(candidateCedula);
+    if (syncText) {
+      syncText.textContent = res
+        ? '✅ Grabación sincronizada correctamente. Ya puede cerrar esta ventana.'
+        : '✅ Registro completado.';
+    }
+  } catch (e) {
+    console.warn('Advertencia al subir grabación:', e);
+    if (syncText) syncText.textContent = '✅ Registro finalizado.';
+  } finally {
+    AppState.isUploadingRecording = false;
+    window.removeEventListener('beforeunload', unloadGuard);
+  }
+}
 
 // ==============================================================================
 // 7.1 MÓDULO DE GRABACIÓN DE PANTALLA Y AUDIO OPTIMIZADO (LEY 1581 DE 2012)
@@ -1010,7 +1051,16 @@ const ScreenAudioRecorder = {
         if (DOM.floatingCameraBubble) {
           DOM.floatingCameraBubble.classList.remove('hidden');
         }
+        // Activar Picture-in-Picture nativo si el navegador lo permite para que la cámara
+        // permanezca visible encima de Microsoft Excel en la grabación de pantalla completa
+        DOM.webcamLivePreview.addEventListener('loadedmetadata', () => {
+          if (document.pictureInPictureEnabled && !DOM.webcamLivePreview.disablePictureInPicture) {
+            DOM.webcamLivePreview.requestPictureInPicture().catch(() => {});
+          }
+        }, { once: true });
       }
+      const recLabel = document.querySelector('#recordingLiveIndicator .rec-label');
+      if (recLabel) recLabel.textContent = 'REC • Pantalla, Cámara & Audio';
     } catch (camErr) {
       console.warn('Cámara web no disponible o denegada, intentando solo micrófono:', camErr);
       try {
@@ -1022,9 +1072,13 @@ const ScreenAudioRecorder = {
           },
           video: false
         });
+        const recLabel = document.querySelector('#recordingLiveIndicator .rec-label');
+        if (recLabel) recLabel.textContent = 'REC • Pantalla & Audio';
       } catch (audioErr) {
         console.warn('Micrófono tampoco disponible:', audioErr);
         this.cameraStream = null;
+        const recLabel = document.querySelector('#recordingLiveIndicator .rec-label');
+        if (recLabel) recLabel.textContent = 'REC • Pantalla Completa';
       }
     }
 
@@ -1070,6 +1124,9 @@ const ScreenAudioRecorder = {
   },
 
   stopStreams() {
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture().catch(() => {});
+    }
     if (this.screenStream) {
       this.screenStream.getTracks().forEach(t => t.stop());
       this.screenStream = null;
@@ -1120,7 +1177,7 @@ const ScreenAudioRecorder = {
                 .upload(fileName, blob, {
                   contentType: 'video/webm',
                   cacheControl: '3600',
-                  upsert: true
+                  upsert: false
                 });
 
               if (!error && data) {
@@ -1175,7 +1232,7 @@ function readFileAsBase64(file) {
   });
 }
 
-function downloadCandidateExcelFile(excelMeta, candidateName, candidateCedula) {
+async function downloadCandidateExcelFile(excelMeta, candidateName, candidateCedula) {
   if (!excelMeta) return;
   const safeName = (candidateName || 'Candidato').replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ_-]/g, '_');
   const originalName = excelMeta.nombre || 'calculos_nomina.xlsx';
@@ -1208,6 +1265,25 @@ function downloadCandidateExcelFile(excelMeta, candidateName, candidateCedula) {
   }
 
   if (excelMeta.url) {
+    try {
+      const resp = await fetch(excelMeta.url);
+      if (resp.ok) {
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = downloadFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        showToast('Descarga Iniciada', `Descargando libro Excel de ${candidateName}...`, 'success');
+        return;
+      }
+    } catch (e) {
+      console.warn('Descarga blob falló, usando enlace directo:', e);
+    }
+
     const link = document.createElement('a');
     link.href = excelMeta.url;
     link.target = '_blank';
@@ -1219,13 +1295,51 @@ function downloadCandidateExcelFile(excelMeta, candidateName, candidateCedula) {
   }
 }
 
+async function uploadExcelToSupabaseStorage(file, cedula) {
+  if (!supabaseClient || !file) return null;
+  const safeOriginal = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const objectPath = `excel_${cedula || 'cand'}_${Date.now()}_${safeOriginal}`;
+  const contentType = file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  for (const bucketName of ['archivos-pruebas', 'grabaciones-pruebas']) {
+    try {
+      const { data, error } = await supabaseClient
+        .storage
+        .from(bucketName)
+        .upload(objectPath, file, {
+          contentType,
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (!error && data) {
+        const { data: urlData } = supabaseClient
+          .storage
+          .from(bucketName)
+          .getPublicUrl(objectPath);
+        if (urlData && urlData.publicUrl) {
+          return {
+            url: urlData.publicUrl,
+            storage_bucket: bucketName,
+            storage_path: objectPath
+          };
+        }
+      }
+    } catch (err) {
+      console.warn(`Intento de subida Excel a ${bucketName} no disponible:`, err);
+    }
+  }
+  return null;
+}
+
 async function handleExcelFileSelected(file) {
   if (!file) return;
 
+  const lastDot = file.name.lastIndexOf('.');
   const validExts = ['.xlsx', '.xls', '.xlsm', '.csv'];
-  const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+  const ext = lastDot !== -1 ? file.name.slice(lastDot).toLowerCase() : '';
   if (!validExts.includes(ext)) {
-    showToast('Formato No Válido', 'Solo se admiten libros de Excel (.xlsx, .xls) o archivos .csv.', 'warning');
+    showToast('Formato No Válido', 'Solo se admiten libros de Excel (.xlsx, .xls, .xlsm) o archivos .csv.', 'warning');
     return;
   }
 
@@ -1236,46 +1350,67 @@ async function handleExcelFileSelected(file) {
   }
 
   try {
-    showToast('Cargando Excel', 'Leyendo y preparando archivo de trabajo...', 'info');
-    const base64 = await readFileAsBase64(file);
+    showToast('Cargando Excel', 'Subiendo y vinculando archivo de trabajo...', 'info');
+
+    const cedula = AppState.currentCandidate ? AppState.currentCandidate.cedula : '000';
+    const storageResult = await uploadExcelToSupabaseStorage(file, cedula);
+
+    let base64 = null;
+    if (!storageResult) {
+      // Fallback seguro si el bucket aún no admite Excel: proteger límite de 4.5 MB de Vercel
+      const maxFallbackBytes = 3 * 1024 * 1024; // 3 MB en binario (~4 MB en Base64)
+      if (file.size > maxFallbackBytes) {
+        showToast(
+          'Archivo Excede Límite Directo (3 MB)',
+          'Comprima o reduzca el tamaño de su libro Excel a menos de 3 MB (o habilite el bucket archivos-pruebas en Supabase).',
+          'warning'
+        );
+        if (DOM.inputExcelFile) DOM.inputExcelFile.value = '';
+        return;
+      }
+      base64 = await readFileAsBase64(file);
+    }
 
     AppState.attachedExcelFile = {
       name: file.name,
       size: file.size,
       type: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      url: storageResult ? storageResult.url : null,
+      storage_bucket: storageResult ? storageResult.storage_bucket : null,
+      storage_path: storageResult ? storageResult.storage_path : null,
       base64: base64,
       uploadedAt: new Date().toISOString()
     };
+    AppState.excelDirty = true;
 
     // Actualizar vista previa en el cuestionario
     if (DOM.dropzonePrompt) DOM.dropzonePrompt.classList.add('hidden');
     if (DOM.filePreviewCard) DOM.filePreviewCard.classList.remove('hidden');
     if (DOM.previewFileName) DOM.previewFileName.textContent = file.name;
     if (DOM.previewFileSize) {
-      const kb = (file.size / 1024).toFixed(1);
-      DOM.previewFileSize.textContent = `${kb} KB`;
+      const sizeStr = file.size >= 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+        : `${(file.size / 1024).toFixed(1)} KB`;
+      DOM.previewFileSize.textContent = sizeStr;
     }
 
     showToast('Excel Adjunto', `Archivo "${file.name}" cargado exitosamente.`, 'success');
     triggerAutosave();
   } catch (err) {
     console.error('Error procesando archivo Excel:', err);
-    showToast('Error', 'No se pudo leer el archivo seleccionado.', 'error');
+    showToast('Error', 'No se pudo procesar el archivo seleccionado.', 'error');
   }
 }
 
 function setupExcelUploadHandlers() {
   if (!DOM.excelDropZone) return;
 
-  // Clic en la zona o botón para abrir selector
   const triggerFileInput = () => {
     if (DOM.inputExcelFile) DOM.inputExcelFile.click();
   };
 
   DOM.excelDropZone.addEventListener('click', (e) => {
-    // Si hizo clic en el botón de quitar, no abrir selector
     if (e.target && e.target.closest('#btnRemoveExcelFile')) return;
-    // Si ya hay archivo cargado y dio clic en la tarjeta, permitir cambiarlo
     triggerFileInput();
   });
 
@@ -1300,6 +1435,7 @@ function setupExcelUploadHandlers() {
     DOM.btnRemoveExcelFile.addEventListener('click', (e) => {
       e.stopPropagation();
       AppState.attachedExcelFile = null;
+      AppState.excelDirty = true;
       if (DOM.inputExcelFile) DOM.inputExcelFile.value = '';
       if (DOM.filePreviewCard) DOM.filePreviewCard.classList.add('hidden');
       if (DOM.dropzonePrompt) DOM.dropzonePrompt.classList.remove('hidden');
@@ -1336,11 +1472,11 @@ function setupExcelUploadHandlers() {
 // ==============================================================================
 // 8. GESTIÓN DEL CUESTIONARIO Y RESPUESTAS
 // ==============================================================================
-function collectCurrentAnswers() {
+function collectCurrentAnswers(options = {}) {
+  const { includeExcelPayload = false } = options;
   const answers = {};
   if (!DOM.technicalExamForm) return answers;
 
-  // Solo recopilar campos de preguntas y respuestas, excluyendo el selector de archivo
   const inputs = DOM.technicalExamForm.querySelectorAll('input:not([type="file"]), textarea');
   inputs.forEach(input => {
     if (input.name && input.id) {
@@ -1348,16 +1484,31 @@ function collectCurrentAnswers() {
     }
   });
 
-  // Adjuntar metadatos del archivo Excel si el candidato lo cargó (o limpiar si lo removió)
+  // Adjuntar metadatos del archivo Excel optimizados:
+  // - Si está en Supabase Storage (URL ligera), siempre se incluye sin peso extra.
+  // - Si usa Base64 de respaldo, solo se envía cuando cambió (excelDirty) o al finalizar (includeExcelPayload),
+  //   evitando re-subir megabytes en cada pulsación de tecla durante el autoguardado.
   if (AppState.attachedExcelFile) {
-    answers._archivo_excel = {
-      nombre: AppState.attachedExcelFile.name,
-      tamano: AppState.attachedExcelFile.size,
-      tipo: AppState.attachedExcelFile.type,
-      fecha_subida: AppState.attachedExcelFile.uploadedAt,
-      data_base64: AppState.attachedExcelFile.base64
-    };
-  } else {
+    if (AppState.attachedExcelFile.url) {
+      answers._archivo_excel = {
+        nombre: AppState.attachedExcelFile.name,
+        tamano: AppState.attachedExcelFile.size,
+        tipo: AppState.attachedExcelFile.type,
+        fecha_subida: AppState.attachedExcelFile.uploadedAt,
+        url: AppState.attachedExcelFile.url,
+        storage_bucket: AppState.attachedExcelFile.storage_bucket,
+        storage_path: AppState.attachedExcelFile.storage_path
+      };
+    } else if (AppState.excelDirty || includeExcelPayload) {
+      answers._archivo_excel = {
+        nombre: AppState.attachedExcelFile.name,
+        tamano: AppState.attachedExcelFile.size,
+        tipo: AppState.attachedExcelFile.type,
+        fecha_subida: AppState.attachedExcelFile.uploadedAt,
+        data_base64: AppState.attachedExcelFile.base64
+      };
+    }
+  } else if (AppState.excelDirty || includeExcelPayload) {
     answers._archivo_excel = null;
   }
 
@@ -1395,7 +1546,8 @@ function triggerAutosave() {
 
   clearTimeout(AppState.autosaveTimer);
   AppState.autosaveTimer = setTimeout(async () => {
-    const currentAnswers = collectCurrentAnswers();
+    const wasExcelDirty = AppState.excelDirty;
+    const currentAnswers = collectCurrentAnswers({ includeExcelPayload: false });
     updateProgress();
 
     if (DOM.autosaveIndicator) {
@@ -1408,9 +1560,13 @@ function triggerAutosave() {
         answers: currentAnswers
       });
       if (!serverSave) {
+        const fallbackAnswers = collectCurrentAnswers({ includeExcelPayload: true });
         await DatabaseService.updateCandidate(AppState.currentCandidate.cedula, {
-          respuestas: currentAnswers
+          respuestas: fallbackAnswers
         });
+      }
+      if (wasExcelDirty && !(serverSave && serverSave._error)) {
+        AppState.excelDirty = false;
       }
       if (DOM.autosaveIndicator) {
         DOM.autosaveIndicator.classList.remove('saving');
@@ -1493,8 +1649,12 @@ function startExamView(candidate, existingAnswers = {}, remainingSeconds = null)
       size: savedExcel.tamano,
       type: savedExcel.tipo,
       uploadedAt: savedExcel.fecha_subida,
-      base64: savedExcel.data_base64
+      url: savedExcel.url || candidate.archivo_excel_url || null,
+      storage_bucket: savedExcel.storage_bucket || null,
+      storage_path: savedExcel.storage_path || null,
+      base64: savedExcel.data_base64 || null
     };
+    AppState.excelDirty = false;
     if (DOM.dropzonePrompt) DOM.dropzonePrompt.classList.add('hidden');
     if (DOM.filePreviewCard) DOM.filePreviewCard.classList.remove('hidden');
     if (DOM.previewFileName) DOM.previewFileName.textContent = savedExcel.nombre || 'archivo_adjunto.xlsx';
@@ -1504,6 +1664,7 @@ function startExamView(candidate, existingAnswers = {}, remainingSeconds = null)
     }
   } else {
     AppState.attachedExcelFile = null;
+    AppState.excelDirty = false;
     if (DOM.inputExcelFile) DOM.inputExcelFile.value = '';
     if (DOM.filePreviewCard) DOM.filePreviewCard.classList.add('hidden');
     if (DOM.dropzonePrompt) DOM.dropzonePrompt.classList.remove('hidden');
@@ -1845,8 +2006,8 @@ async function handleCandidateLogin(e) {
 async function handleSubmitExam(isAutoSubmit = false) {
   if (!AppState.isExamActive || AppState.isBlocked) return;
 
-  const currentAnswers = collectCurrentAnswers();
-  const answeredCount = Object.keys(currentAnswers).filter(k => !k.startsWith('_') && currentAnswers[k].length > 0).length;
+  const currentAnswers = collectCurrentAnswers({ includeExcelPayload: true });
+  const answeredCount = Object.keys(currentAnswers).filter(k => !k.startsWith('_') && typeof currentAnswers[k] === 'string' && currentAnswers[k].length > 0).length;
 
   if (!isAutoSubmit) {
     AntiFraudSystem.pause();
@@ -1861,26 +2022,21 @@ async function handleSubmitExam(isAutoSubmit = false) {
     }
   }
 
+  if (DOM.btnSubmitExam) {
+    DOM.btnSubmitExam.disabled = true;
+  }
+
   // Desactivar definitivamente el antifraude y detener el cronómetro
   AppState.isExamActive = false;
   AntiFraudSystem.deactivate();
   ExamTimer.stop();
   exitFullScreenMode();
 
-  // Detener y subir la grabación optimizada a Supabase Storage (Ley 1581)
-  if (typeof ScreenAudioRecorder !== 'undefined') {
-    const candidateCedula = AppState.currentCandidate ? AppState.currentCandidate.cedula : '';
-    if (candidateCedula) {
-      ScreenAudioRecorder.stopAndUpload(candidateCedula).catch(err => {
-        console.warn('Error al subir grabación final:', err);
-      });
-    }
-  }
-
   showToast('Enviando', 'Guardando respuestas finales en el sistema...', 'info');
 
+  const candidateCedula = AppState.currentCandidate ? AppState.currentCandidate.cedula : '';
+
   try {
-    const candidateCedula = AppState.currentCandidate.cedula;
     const serverSubmit = await DatabaseService.candidateAction('submit', {
       cedula: candidateCedula,
       answers: currentAnswers
@@ -1893,15 +2049,25 @@ async function handleSubmitExam(isAutoSubmit = false) {
       });
     }
 
+    AppState.excelDirty = false;
+
     renderFinishedView({
-      nombre: AppState.currentCandidate.nombre,
+      nombre: AppState.currentCandidate ? AppState.currentCandidate.nombre : '',
       cedula: candidateCedula,
       fecha: new Date().toISOString()
     });
 
+    // Subir grabación optimizada con protección contra cierre accidental de pestaña (Ley 1581)
+    if (typeof ScreenAudioRecorder !== 'undefined' && candidateCedula) {
+      await syncRecordingWithUnloadGuard(candidateCedula, 'finished');
+    }
   } catch (err) {
     console.error('Error al finalizar examen:', err);
     showToast('Error', 'Hubo un inconveniente al guardar las respuestas finales.', 'error');
+  } finally {
+    if (DOM.btnSubmitExam) {
+      DOM.btnSubmitExam.disabled = false;
+    }
   }
 }
 
@@ -1954,7 +2120,9 @@ function renderAdminDashboard() {
       const q = AppState.adminSearchQuery.toLowerCase();
       const matchName = (candidate.nombre || '').toLowerCase().includes(q);
       const matchCedula = (candidate.cedula || '').toLowerCase().includes(q);
-      return matchName || matchCedula;
+      const candMail = candidate.correo || (candidate.respuestas && candidate.respuestas._candidato && candidate.respuestas._candidato.correo) || '';
+      const matchEmail = candMail.toLowerCase().includes(q);
+      return matchName || matchCedula || matchEmail;
     }
     return true;
   });
@@ -1983,11 +2151,18 @@ function renderAdminDashboard() {
       statusBadge = `<span class="badge badge-danger"><span class="badge-dot"></span>BLOQUEADO</span>`;
     }
 
-    const candidateMeta = (item.respuestas && item.respuestas._candidato) ? item.respuestas._candidato : {};
-    const email = candidateMeta.correo || '';
+    const ansObj = item.respuestas || {};
+    const candidateMeta = ansObj._candidato ? ansObj._candidato : {};
+    const email = candidateMeta.correo || item.correo || '';
     const birth = candidateMeta.fecha_nacimiento || '';
 
-    const gradingData = (item.respuestas && item.respuestas._calificacion) ? item.respuestas._calificacion : null;
+    const answeredCount = Object.keys(EXAM_QUESTIONS_MAP).filter(qKey => {
+      const val = ansObj[qKey];
+      return typeof val === 'string' && val.trim().length > 0;
+    }).length;
+    const progressPct = Math.round((answeredCount / TOTAL_QUESTIONS_COUNT) * 100);
+
+    const gradingData = ansObj._calificacion ? ansObj._calificacion : null;
     let scorePillHtml = '';
     if (gradingData && typeof gradingData.porcentaje === 'number') {
       const pct = gradingData.porcentaje;
@@ -1995,7 +2170,7 @@ function renderAdminDashboard() {
       scorePillHtml = `<div style="margin-top:6px;"><span class="score-pill-table ${pillClass}">⭐ Calificación: ${pct}% (${gradingData.puntos}/38)</span></div>`;
     }
 
-    const hasExcel = Boolean(item.archivo_excel_url || (item.respuestas && item.respuestas._archivo_excel));
+    const hasExcel = Boolean(item.archivo_excel_url || ansObj._archivo_excel);
     const isResetEligible = item.estado === 'BLOQUEADO' || item.estado === 'EN_CURSO';
 
     return `
@@ -2009,7 +2184,17 @@ function renderAdminDashboard() {
             ${birth ? `<span class="candidate-cell-sub">🎂 F. Nac: ${escapeHtml(birth)}</span>` : ''}
           </div>
         </td>
-        <td><strong>${escapeHtml(item.cedula)}</strong></td>
+        <td>
+          <div class="table-progress-wrap">
+            <div class="table-progress-label">
+              <strong>${answeredCount} / ${TOTAL_QUESTIONS_COUNT}</strong>
+              <span>${progressPct}%</span>
+            </div>
+            <div class="table-progress-track">
+              <div class="table-progress-fill" style="width: ${progressPct}%;"></div>
+            </div>
+          </div>
+        </td>
         <td>
           ${statusBadge}
           ${scorePillHtml}
@@ -2070,7 +2255,7 @@ function attachAdminTableActions() {
 // Las respuestas oficiales y criterios se consultan en tiempo real a /api/grade
 // protegiéndolos de cualquier candidato que inspeccione el código.
 // ==============================================================================
-async function openResponsesModal(cedula) {
+async function openResponsesModal(cedula, forceAutoGrade = false) {
   const candidate = AppState.adminData.find(c => c.cedula === cedula);
   if (!candidate) return;
 
@@ -2101,6 +2286,9 @@ async function openResponsesModal(cedula) {
     <strong>Fecha:</strong> ${formatDate(candidate.fecha)}
   `;
 
+  const candidateExcelMeta = (candidate.respuestas && candidate.respuestas._archivo_excel)
+    || (candidate.archivo_excel_url ? { nombre: 'calculos_nomina.xlsx', url: candidate.archivo_excel_url } : null);
+
   // Poblar Ficha Ejecutiva Oficial para Impresión y PDF
   const printDossier = document.getElementById('printDossierGrid');
   if (printDossier) {
@@ -2120,7 +2308,7 @@ async function openResponsesModal(cedula) {
           <div class="dossier-row"><span class="dossier-label">Fecha y Hora de Examen:</span> <span class="dossier-val">${formatDate(candidate.fecha)}</span></div>
           <div class="dossier-row"><span class="dossier-label">Estado de la Prueba:</span> <span class="dossier-val-badge ${candidate.estado.toLowerCase()}">${escapeHtml(candidate.estado)}</span></div>
           <div class="dossier-row"><span class="dossier-label">Supervisión y Seguridad:</span> <span class="dossier-val">Grabación de pantalla, audio y cámara facial (Ley 1581/2012)</span></div>
-          <div class="dossier-row"><span class="dossier-label">Hoja de Cálculo Excel:</span> <span class="dossier-val">${(candidate.respuestas && candidate.respuestas._archivo_excel) ? `Adjuntado (${escapeHtml(candidate.respuestas._archivo_excel.nombre || 'archivo.xlsx')})` : 'No adjuntó archivo'}</span></div>
+          <div class="dossier-row"><span class="dossier-label">Hoja de Cálculo Excel:</span> <span class="dossier-val">${candidateExcelMeta ? `Adjuntado (${escapeHtml(candidateExcelMeta.nombre || 'archivo.xlsx')})` : 'No adjuntó archivo'}</span></div>
           <div class="dossier-row"><span class="dossier-label">Evaluador(a) Oficial:</span> <span class="dossier-val">Dirección de Talento Humano · Paola</span></div>
         </div>
       </div>
@@ -2193,7 +2381,7 @@ async function openResponsesModal(cedula) {
   }
 
   // Configuración del archivo Excel adjunto del candidato
-  const candidateExcel = (candidate.respuestas && candidate.respuestas._archivo_excel) || null;
+  const candidateExcel = candidateExcelMeta;
   if (candidateExcel && (candidateExcel.data_base64 || candidateExcel.url)) {
     if (DOM.modalExcelCard) DOM.modalExcelCard.classList.remove('hidden');
     if (DOM.modalExcelMeta) {
@@ -2210,7 +2398,7 @@ async function openResponsesModal(cedula) {
   }
 
   const scrollContainer = document.getElementById('modalResponsesScrollContainer');
-  if (scrollContainer) scrollContainer.scrollTop = 0;
+  if (scrollContainer && !forceAutoGrade) scrollContainer.scrollTop = 0;
 
   DOM.modalResponsesContent.innerHTML = `
     <div class="text-center py-12 text-muted">
@@ -2221,7 +2409,9 @@ async function openResponsesModal(cedula) {
   DOM.responsesModal.classList.remove('hidden');
 
   const answers = candidate.respuestas || {};
-  const savedGrades = (answers._calificacion && answers._calificacion.items) ? { ...answers._calificacion.items } : null;
+  const savedGrades = (!forceAutoGrade && answers._calificacion && answers._calificacion.items)
+    ? { ...answers._calificacion.items }
+    : null;
 
   try {
     const data = await DatabaseService.getOrSaveGrade(cedula, answers, savedGrades, false);
@@ -2250,6 +2440,7 @@ async function openResponsesModal(cedula) {
         answer: answers[qKey] || '',
         guide: evalInfo.guide || solucionario[qKey] || '',
         grade: activeGrades[qKey] !== undefined ? activeGrades[qKey] : evalInfo.score,
+        suggestedScore: evalInfo.score,
         reason: evalInfo.reason || ''
       });
     });
@@ -2296,7 +2487,7 @@ async function openResponsesModal(cedula) {
               <button type="button" class="btn-grade-opt grade-correct ${g === 1 ? 'active' : ''}" data-qkey="${item.key}" data-score="1">✅ Correcta (1.0)</button>
               <button type="button" class="btn-grade-opt grade-partial ${g === 0.5 ? 'active' : ''}" data-qkey="${item.key}" data-score="0.5">⚠️ Parcial (0.5)</button>
               <button type="button" class="btn-grade-opt grade-wrong ${g === 0 ? 'active' : ''}" data-qkey="${item.key}" data-score="0">❌ Incorrecta (0)</button>
-              ${item.reason ? `<span class="auto-grade-tag">🤖 Sugerido: ${g} pts · <em>${escapeHtml(item.reason)}</em></span>` : ''}
+              ${item.reason ? `<span class="auto-grade-tag">🤖 Sugerido: ${evalInfoScoreLabel(item)} · <em>${escapeHtml(item.reason)}</em></span>` : ''}
             </div>
           </div>
         `;
@@ -2357,11 +2548,20 @@ async function openResponsesModal(cedula) {
   }
 }
 
+function evalInfoScoreLabel(item) {
+  const s = typeof item.suggestedScore === 'number' ? item.suggestedScore : item.grade;
+  return typeof s === 'number' ? `${s} pts` : '0 pts';
+}
+
 async function autoGradeCurrentCandidate() {
   const cedula = AppState.currentGradingCedula;
   if (!cedula) return;
-  await openResponsesModal(cedula);
-  showToast('Auto-Calificación Actualizada', 'Respuestas reevaluadas con el solucionario confidencial.', 'info');
+  await openResponsesModal(cedula, true);
+  showToast(
+    'Auto-Calificación Aplicada',
+    'Las 38 preguntas fueron reevaluadas con el solucionario oficial 2026. Haga clic en "Guardar Calificación" para confirmar.',
+    'success'
+  );
 }
 
 function updateModalGradingSummary(gradesMap) {
@@ -2522,6 +2722,7 @@ function closeAdminPanel() {
     adminRefreshInterval = null;
   }
   sessionStorage.removeItem('LP_ADMIN_AUTH');
+  sessionStorage.removeItem('LP_ADMIN_TOKEN');
 
   // Limpiar parámetro de URL si existía (?admin=...)
   if (window.location.search.includes('admin=')) {
@@ -2536,26 +2737,28 @@ function closeAdminPanel() {
   showToast('Sesión Cerrada', 'Ha salido del Panel de Recursos Humanos.', 'info');
 }
 
+function openAdminLoginDialog() {
+  if (DOM.adminLoginError) DOM.adminLoginError.classList.add('hidden');
+  if (DOM.adminUsernameInput) DOM.adminUsernameInput.value = '';
+  if (DOM.adminPasswordInput) DOM.adminPasswordInput.value = '';
+  if (DOM.adminLoginModal) {
+    DOM.adminLoginModal.classList.remove('hidden');
+    setTimeout(() => {
+      if (DOM.adminUsernameInput) DOM.adminUsernameInput.focus();
+    }, 150);
+  }
+}
+
 function initAdminLoginModal() {
   if (DOM.btnOpenAdminLogin) {
-    DOM.btnOpenAdminLogin.addEventListener('click', () => {
-      if (DOM.adminLoginError) DOM.adminLoginError.classList.add('hidden');
-      if (DOM.adminUsernameInput) DOM.adminUsernameInput.value = '';
-      if (DOM.adminPasswordInput) DOM.adminPasswordInput.value = '';
-      if (DOM.adminLoginModal) {
-        DOM.adminLoginModal.classList.remove('hidden');
-        setTimeout(() => {
-          if (DOM.adminUsernameInput) DOM.adminUsernameInput.focus();
-        }, 150);
-      }
-    });
+    DOM.btnOpenAdminLogin.addEventListener('click', openAdminLoginDialog);
   }
 
   // Atajo de teclado discreto para Paola: Ctrl + Shift + A
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
       e.preventDefault();
-      if (DOM.btnOpenAdminLogin) DOM.btnOpenAdminLogin.click();
+      openAdminLoginDialog();
     }
   });
 
@@ -2594,7 +2797,7 @@ function initAdminLoginModal() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: usr, password: pwd })
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (res.ok && data.success && data.token) {
           sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
@@ -2603,17 +2806,13 @@ function initAdminLoginModal() {
           showToast('Bienvenida Paola', 'Acceso seguro al Panel de Recursos Humanos.', 'success');
           openAdminPanel();
         } else {
-          // Fallback para desarrollo local si la API aún no está levantada
-          if (res.status === 404 && (usr === 'paola' || usr === 'admin') && (pwd.toLowerCase() === 'paola2026' || pwd.toLowerCase() === 'paola')) {
-            sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
-            closeLogin();
-            showToast('Bienvenida Paola', 'Acceso local al Panel de Recursos Humanos.', 'success');
-            openAdminPanel();
-            return;
-          }
           if (DOM.adminLoginError) {
             const errSpan = DOM.adminLoginError.querySelector('span');
-            if (errSpan) errSpan.textContent = data.error || 'Credenciales inválidas. Acceso restringido.';
+            if (errSpan) {
+              errSpan.textContent = res.status === 404
+                ? 'Servicio /api/admin-auth no disponible en servidor estático. Ejecute con Vercel Dev o en producción.'
+                : (data.error || 'Credenciales inválidas. Acceso restringido.');
+            }
             DOM.adminLoginError.classList.remove('hidden');
           }
           if (DOM.adminPasswordInput) {
@@ -2623,12 +2822,10 @@ function initAdminLoginModal() {
         }
       } catch (err) {
         console.error('Error al autenticar administrador:', err);
-        if ((usr === 'paola' || usr === 'admin') && (pwd.toLowerCase() === 'paola2026' || pwd.toLowerCase() === 'paola')) {
-          sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
-          closeLogin();
-          openAdminPanel();
-        } else {
-          if (DOM.adminLoginError) DOM.adminLoginError.classList.remove('hidden');
+        if (DOM.adminLoginError) {
+          const errSpan = DOM.adminLoginError.querySelector('span');
+          if (errSpan) errSpan.textContent = 'No fue posible conectar con el servidor de autenticación.';
+          DOM.adminLoginError.classList.remove('hidden');
         }
       } finally {
         if (submitBtn) {
@@ -2642,6 +2839,39 @@ function initAdminLoginModal() {
   if (DOM.btnAdminLogout) {
     DOM.btnAdminLogout.addEventListener('click', closeAdminPanel);
   }
+}
+
+async function authenticateAdminFromUrlParam(adminParam) {
+  hideAllViews();
+  if (DOM.viewIdentification) {
+    DOM.viewIdentification.classList.remove('hidden');
+  }
+
+  if (adminParam === '1' || adminParam === 'true' || adminParam === 'login') {
+    openAdminLoginDialog();
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: 'paola', password: adminParam })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success && data.token) {
+      sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
+      sessionStorage.setItem('LP_ADMIN_TOKEN', data.token);
+      showToast('Bienvenida Paola', 'Sesión administrativa verificada de forma segura.', 'success');
+      openAdminPanel();
+      return;
+    }
+  } catch (err) {
+    console.warn('No se pudo validar acceso por parámetro URL:', err);
+  }
+
+  openAdminLoginDialog();
+  showToast('Autenticación Requerida', 'Ingrese sus credenciales administrativas para acceder al panel.', 'warning');
 }
 
 function initApp() {
@@ -2761,44 +2991,14 @@ function initApp() {
 
   initAdminLoginModal();
 
-  // 3. Comprobar si accede directamente por URL (?admin=paola2026) o ya tenía sesión activa
-  const urlParams = new URLSearchParams(window.location.search);
-  const isAdminUrl = urlParams.get('admin') === 'paola2026';
-  const isAdminSession = sessionStorage.getItem('LP_ADMIN_AUTH') === 'true';
-
-  if (isAdminUrl || isAdminSession) {
-    sessionStorage.setItem('LP_ADMIN_AUTH', 'true');
-    openAdminPanel();
-    return;
-  }
-
-  // 4. Vista Candidato: Comprobar bloqueo previo en sesión
-  const blockedCedula = sessionStorage.getItem('LP_BLOCKED_CEDULA');
-  if (blockedCedula) {
-    renderBlockedView({
-      nombre: sessionStorage.getItem('LP_BLOCKED_NAME'),
-      cedula: blockedCedula,
-      motivo_bloqueo: sessionStorage.getItem('LP_BLOCKED_REASON'),
-      fecha: sessionStorage.getItem('LP_BLOCKED_TIMESTAMP')
-    });
-    return;
-  }
-
-  // 5. Iniciar en Vista de Identificación
-  hideAllViews();
-  if (DOM.viewIdentification) {
-    DOM.viewIdentification.classList.remove('hidden');
-  }
-
-  // Restricciones lógicas de fecha de nacimiento (mínimo 18 años, prohibido fechas futuras)
+  // 3. Registrar SIEMPRE los listeners de candidato, examen y seguridad antes de enrutar vistas
+  // (garantiza que al cerrar sesión del Panel Admin, el formulario de candidato funcione al 100%)
   initDateConstraints();
 
-  // Listeners de Login Candidato
   if (DOM.candidateLoginForm) {
     DOM.candidateLoginForm.addEventListener('submit', handleCandidateLogin);
   }
 
-  // Listener para la casilla que se tacha / se marca (Aceptación de Normas)
   if (DOM.acceptSupervisionCheck) {
     DOM.acceptSupervisionCheck.addEventListener('change', (e) => {
       const box = document.getElementById('securityWarningBox');
@@ -2815,18 +3015,14 @@ function initApp() {
 
   // Bloqueo global de clic derecho en la plataforma (Antifraude)
   document.addEventListener('contextmenu', (e) => {
-    // Si el examen está en curso, AntiFraudSystem ya lo maneja
     if (AppState.isExamActive) return;
-    // Si Paola está autenticada y visualizando el panel de administración, permitimos clic normal
     if (sessionStorage.getItem('LP_ADMIN_AUTH') === 'true' && DOM.viewAdmin && !DOM.viewAdmin.classList.contains('hidden')) {
       return;
     }
-    // En campos de texto de registro (inputs), permitir clic derecho para pegar o corregir con comodidad
     const targetTag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
     if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
       return;
     }
-    // En el resto de la interfaz pública, neutralizar menú contextual sin mensajes molestos
     e.preventDefault();
   });
 
@@ -2840,7 +3036,7 @@ function initApp() {
     const isCtrlOrCmd = e.ctrlKey || e.metaKey;
     const key = (e.key || '').toUpperCase();
 
-    // Atajo secreto de Paola (Ctrl + Shift + A) permitido
+    // Atajo discreto de Paola (Ctrl + Shift + A) permitido
     if (e.ctrlKey && e.shiftKey && key === 'A') return;
 
     if (e.key === 'F12' || (isCtrlOrCmd && e.shiftKey && (key === 'I' || key === 'J' || key === 'C')) || (isCtrlOrCmd && key === 'U')) {
@@ -2849,14 +3045,12 @@ function initApp() {
     }
   });
 
-  // Formatear cédula en tiempo real para solo permitir dígitos
   if (DOM.candidateCedula) {
     DOM.candidateCedula.addEventListener('input', (e) => {
       e.target.value = sanitizeCedula(e.target.value);
     });
   }
 
-  // Listeners del Formulario de Examen (Autoguardado y Progreso)
   if (DOM.technicalExamForm) {
     DOM.technicalExamForm.addEventListener('input', () => {
       triggerAutosave();
@@ -2864,13 +3058,51 @@ function initApp() {
     });
   }
 
-  // Botón de Enviar Examen
   if (DOM.btnSubmitExam) {
     DOM.btnSubmitExam.addEventListener('click', () => handleSubmitExam(false));
   }
 
-  // Inicializar manejadores para subida de archivo Excel
   setupExcelUploadHandlers();
+
+  // 4. Enrutamiento inicial: verificar sesión administrativa o parámetro ?admin=...
+  const urlParams = new URLSearchParams(window.location.search);
+  const adminParam = urlParams.get('admin');
+  if (adminParam !== null) {
+    // Limpiar inmediatamente el parámetro sensible de la barra de direcciones
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+
+  const hasValidAdminSession = sessionStorage.getItem('LP_ADMIN_AUTH') === 'true'
+    && Boolean(sessionStorage.getItem('LP_ADMIN_TOKEN'));
+
+  if (hasValidAdminSession) {
+    openAdminPanel();
+    return;
+  }
+
+  if (adminParam) {
+    authenticateAdminFromUrlParam(adminParam);
+    return;
+  }
+
+  // 5. Vista Candidato: Comprobar bloqueo previo en sesión
+  const blockedCedula = sessionStorage.getItem('LP_BLOCKED_CEDULA');
+  if (blockedCedula) {
+    renderBlockedView({
+      nombre: sessionStorage.getItem('LP_BLOCKED_NAME'),
+      cedula: blockedCedula,
+      motivo_bloqueo: sessionStorage.getItem('LP_BLOCKED_REASON'),
+      fecha: sessionStorage.getItem('LP_BLOCKED_TIMESTAMP')
+    });
+    return;
+  }
+
+  // 6. Iniciar en Vista de Identificación
+  hideAllViews();
+  if (DOM.viewIdentification) {
+    DOM.viewIdentification.classList.remove('hidden');
+  }
 }
 
 // ==============================================================================

@@ -994,6 +994,7 @@
           <div><span class="meta-label">Cédula:</span> <strong id="blockedCandidateCedula">---</strong></div>
           <div><span class="meta-label">Fecha y Hora:</span> <span id="blockedTimestamp">---</span></div>
           <div class="full-width"><span class="meta-label">Causa del Bloqueo:</span> <strong id="blockedReasonText" class="text-danger-strong">---</strong></div>
+          <div class="full-width hidden" id="blockedRecordingSyncBox"><span class="meta-label">Auditoría de Video (Ley 1581):</span> <strong id="blockedRecordingSyncText">Sincronizando grabación...</strong></div>
         </div>
       </div>
 
@@ -1038,6 +1039,10 @@
         <div class="receipt-row">
           <span>Estado en Plataforma:</span>
           <span class="badge badge-success">FINALIZADO</span>
+        </div>
+        <div class="receipt-row hidden" id="finishedRecordingSyncRow">
+          <span>Grabación de Auditoría:</span>
+          <strong id="finishedRecordingSyncText" class="text-xs">Sincronizando...</strong>
         </div>
       </div>
 
@@ -1165,7 +1170,7 @@
               <tr>
                 <th>Fecha y Hora</th>
                 <th>Datos del Candidato</th>
-                <th>Cédula / Avance</th>
+                <th>Avance del Cuestionario</th>
                 <th>Estado / Nota</th>
                 <th>Motivo de Bloqueo / Incidencia</th>
                 <th class="text-right">Acciones</th>

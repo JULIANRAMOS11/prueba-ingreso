@@ -2,14 +2,19 @@
 // LOZADA & PARTNERS SAS - API DE GESTIÓN DE CANDIDATOS (RECURSOS HUMANOS)
 // Endpoint: /api/admin-data
 // ==============================================================================
-const { verifyAdminToken, querySupabaseAdmin } = require('./_utils');
+const {
+  verifyAdminToken,
+  querySupabaseAdmin,
+  extractStorageInfoFromUrl,
+  deleteSupabaseStorageObject
+} = require('./_utils');
 
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
 
-  // 1. Blindaje: Solo Paola con Token Válido puede acceder
+  // 1. Blindaje: Solo Paola con Token HMAC válido puede acceder
   if (!verifyAdminToken(req)) {
     return res.status(401).json({
       error: 'No autorizado. Se requiere token de sesión administrativo válido.'
@@ -29,9 +34,9 @@ module.exports = async (req, res) => {
       });
     }
 
-    // DELETE: Eliminar permanentemente un registro de prueba o su grabación
+    // DELETE: Eliminar un registro de prueba o purgar su grabación (Ley 1581)
     if (method === 'DELETE') {
-      const url = new URL(req.url, `http://${req.headers.host}`);
+      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
       const cedula = (url.searchParams.get('cedula') || '').trim();
       const action = (url.searchParams.get('action') || '').trim();
 
@@ -39,22 +44,16 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'Parámetro cédula es requerido.' });
       }
 
-      // 1. Si solo se desea eliminar la grabación para liberar espacio (Ley 1581)
-      if (action === 'delete-recording') {
-        const candidateData = await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cedula)}`);
-        const candidate = Array.isArray(candidateData) && candidateData.length > 0 ? candidateData[0] : null;
+      const candidateData = await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cedula)}`);
+      const candidate = Array.isArray(candidateData) && candidateData.length > 0 ? candidateData[0] : null;
 
+      // 1. Si solo se desea eliminar la grabación para liberar espacio (Ley 1581 de 2012)
+      if (action === 'delete-recording') {
+        let storageDeleted = true;
         if (candidate && candidate.grabacion_url) {
-          try {
-            // Eliminar de storage.objects
-            const fileName = candidate.grabacion_url.split('/').pop();
-            if (fileName) {
-              await querySupabaseAdmin(`storage/v1/object/grabaciones-pruebas/${encodeURIComponent(fileName)}`, {
-                method: 'DELETE'
-              }).catch(() => {});
-            }
-          } catch (e) {
-            console.warn('No se pudo borrar objeto de storage:', e);
+          const storageInfo = extractStorageInfoFromUrl(candidate.grabacion_url, 'grabaciones-pruebas');
+          if (storageInfo) {
+            storageDeleted = await deleteSupabaseStorageObject(storageInfo.bucket, storageInfo.objectPath);
           }
         }
 
@@ -65,23 +64,32 @@ module.exports = async (req, res) => {
 
         return res.status(200).json({
           success: true,
+          storageDeleted,
           message: `Grabación del candidato ${cedula} eliminada correctamente. Espacio liberado.`
         });
       }
 
-      // 2. Eliminación completa del candidato y su grabación asociada
-      try {
-        const candidateData = await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cedula)}`);
-        const candidate = Array.isArray(candidateData) && candidateData.length > 0 ? candidateData[0] : null;
-        if (candidate && candidate.grabacion_url) {
-          const fileName = candidate.grabacion_url.split('/').pop();
-          if (fileName) {
-            await querySupabaseAdmin(`storage/v1/object/grabaciones-pruebas/${encodeURIComponent(fileName)}`, {
-              method: 'DELETE'
-            }).catch(() => {});
+      // 2. Eliminación completa del candidato, su grabación de video y su archivo Excel en Storage
+      if (candidate) {
+        if (candidate.grabacion_url) {
+          const recInfo = extractStorageInfoFromUrl(candidate.grabacion_url, 'grabaciones-pruebas');
+          if (recInfo) {
+            await deleteSupabaseStorageObject(recInfo.bucket, recInfo.objectPath);
           }
         }
-      } catch (e) {}
+
+        const excelAttachment = candidate.respuestas && candidate.respuestas._archivo_excel;
+        if (excelAttachment) {
+          if (excelAttachment.storage_bucket && excelAttachment.storage_path) {
+            await deleteSupabaseStorageObject(excelAttachment.storage_bucket, excelAttachment.storage_path);
+          } else if (excelAttachment.url) {
+            const xlsInfo = extractStorageInfoFromUrl(excelAttachment.url, 'archivos-pruebas');
+            if (xlsInfo) {
+              await deleteSupabaseStorageObject(xlsInfo.bucket, xlsInfo.objectPath);
+            }
+          }
+        }
+      }
 
       await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cedula)}`, {
         method: 'DELETE'

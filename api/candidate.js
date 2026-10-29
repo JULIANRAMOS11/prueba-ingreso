@@ -7,6 +7,46 @@ const { querySupabaseAdmin } = require('./_utils');
 const EXAM_DURATION_SECONDS = 90 * 60; // 5400 segundos (1 hora y 30 minutos)
 const GRACE_PERIOD_SECONDS = 120; // 2 minutos de tolerancia por latencia de red
 
+const ALLOWED_QUESTION_REGEX = /^q[1-7]_[1-7]$/;
+
+/**
+ * Filtra únicamente claves permitidas del cuestionario y anexo Excel,
+ * impidiendo que un cliente manipule _calificacion, _inicio_servidor o _candidato.
+ */
+function sanitizeCandidateAnswers(rawAnswers) {
+  const safe = {};
+  if (!rawAnswers || typeof rawAnswers !== 'object') return safe;
+
+  Object.keys(rawAnswers).forEach((key) => {
+    if (ALLOWED_QUESTION_REGEX.test(key)) {
+      const val = rawAnswers[key];
+      safe[key] = typeof val === 'string' ? val.slice(0, 10000) : String(val || '').slice(0, 10000);
+    } else if (key === '_archivo_excel') {
+      // null (cuando el candidato quita el archivo) o metadatos válidos del archivo
+      if (rawAnswers._archivo_excel === null) {
+        safe._archivo_excel = null;
+      } else if (typeof rawAnswers._archivo_excel === 'object') {
+        const ex = rawAnswers._archivo_excel;
+        safe._archivo_excel = {
+          nombre: String(ex.nombre || 'calculos_nomina.xlsx').slice(0, 260),
+          tamano: Number(ex.tamano) || 0,
+          tipo: String(ex.tipo || '').slice(0, 160),
+          fecha_subida: String(ex.fecha_subida || new Date().toISOString()).slice(0, 60),
+          url: ex.url ? String(ex.url).slice(0, 1000) : null,
+          storage_bucket: ex.storage_bucket ? String(ex.storage_bucket).slice(0, 120) : null,
+          storage_path: ex.storage_path ? String(ex.storage_path).slice(0, 400) : null,
+          data_base64: ex.data_base64 ? String(ex.data_base64) : undefined
+        };
+      }
+    } else if (key === '_exam_start_time') {
+      const ts = Number(rawAnswers._exam_start_time);
+      if (!isNaN(ts) && ts > 0) safe._exam_start_time = ts;
+    }
+  });
+
+  return safe;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -20,7 +60,7 @@ module.exports = async (req, res) => {
     const { action, cedula, nombre, meta = {}, answers = {}, reason = '' } = req.body || {};
     const cleanCedula = String(cedula || '').replace(/\D/g, '').trim();
 
-    if (!cleanCedula) {
+    if (!cleanCedula || cleanCedula.length < 5) {
       return res.status(400).json({ error: 'Cédula válida es requerida.' });
     }
 
@@ -33,7 +73,6 @@ module.exports = async (req, res) => {
     // --------------------------------------------------------------------------
     if (action === 'check-or-start') {
       if (current) {
-        // A. Si está bloqueado previamente
         if (current.estado === 'BLOQUEADO') {
           return res.status(200).json({
             status: 'BLOQUEADO',
@@ -44,7 +83,6 @@ module.exports = async (req, res) => {
           });
         }
 
-        // B. Si ya finalizó previamente
         if (current.estado === 'FINALIZADO') {
           return res.status(200).json({
             status: 'FINALIZADO',
@@ -54,13 +92,12 @@ module.exports = async (req, res) => {
           });
         }
 
-        // C. Si está EN_CURSO: calcular tiempo real transcurrido en el servidor
+        // Si está EN_CURSO: calcular tiempo real transcurrido en el servidor
         const startTime = new Date(current.fecha).getTime();
         const now = Date.now();
         const elapsedSeconds = Math.floor((now - startTime) / 1000);
         const remainingSeconds = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
 
-        // Si expiró el tiempo en el servidor (+ margen de gracia)
         if (elapsedSeconds > (EXAM_DURATION_SECONDS + GRACE_PERIOD_SECONDS)) {
           await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cleanCedula)}`, {
             method: 'PATCH',
@@ -75,7 +112,6 @@ module.exports = async (req, res) => {
           });
         }
 
-        // Reanudar prueba con el tiempo exacto que le queda
         return res.status(200).json({
           status: 'EN_CURSO',
           resuming: true,
@@ -86,7 +122,7 @@ module.exports = async (req, res) => {
         });
       }
 
-      // Si es un candidato nuevo: registrarlo en la base de datos
+      // Candidato nuevo: validar datos de identidad
       const cleanNombre = String(nombre || '').replace(/\s+/g, ' ').trim();
       if (!cleanNombre || cleanNombre.length < 3) {
         return res.status(400).json({ error: 'Nombres y apellidos completos son obligatorios.' });
@@ -103,7 +139,6 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'La fecha de nacimiento es obligatoria.' });
       }
 
-      // Validar fecha de nacimiento estricta (no futura y mínimo 18 años cumplidos)
       const birth = new Date(cleanBirthDate + 'T00:00:00');
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -113,7 +148,7 @@ module.exports = async (req, res) => {
       }
 
       if (birth > today) {
-        return res.status(400).json({ error: 'La fecha de nacimiento no puede ser una fecha futura (mañana o posterior).' });
+        return res.status(400).json({ error: 'La fecha de nacimiento no puede ser una fecha futura.' });
       }
 
       let age = today.getFullYear() - birth.getFullYear();
@@ -134,11 +169,20 @@ module.exports = async (req, res) => {
         });
       }
 
-      // Validación de duplicidad en la base de datos de Supabase
-      // 1. Correo electrónico único en la convocatoria
-      const existingByEmail = await querySupabaseAdmin(
-        `pruebas_nomina?correo=ilike.${encodeURIComponent(cleanCorreo)}&cedula=neq.${encodeURIComponent(cleanCedula)}`
-      );
+      // 1. Validación de correo único (compatible tanto con columna correo como con JSONB respuestas)
+      let existingByEmail = [];
+      try {
+        existingByEmail = await querySupabaseAdmin(
+          `pruebas_nomina?correo=ilike.${encodeURIComponent(cleanCorreo)}&cedula=neq.${encodeURIComponent(cleanCedula)}`
+        );
+      } catch (colErr) {
+        try {
+          existingByEmail = await querySupabaseAdmin(
+            `pruebas_nomina?respuestas->_candidato->>correo=ilike.${encodeURIComponent(cleanCorreo)}&cedula=neq.${encodeURIComponent(cleanCedula)}`
+          );
+        } catch (e2) {}
+      }
+
       if (Array.isArray(existingByEmail) && existingByEmail.length > 0) {
         return res.status(409).json({
           error: 'El correo electrónico ya se encuentra registrado por otro candidato en la plataforma.',
@@ -146,7 +190,7 @@ module.exports = async (req, res) => {
         });
       }
 
-      // 2. Nombres y apellidos únicos en la convocatoria
+      // 2. Validación de nombres y apellidos únicos
       const existingByName = await querySupabaseAdmin(
         `pruebas_nomina?nombre=ilike.${encodeURIComponent(cleanNombre)}&cedula=neq.${encodeURIComponent(cleanCedula)}`
       );
@@ -159,12 +203,12 @@ module.exports = async (req, res) => {
 
       const initialRespuestas = {
         _candidato: {
-          nombres: meta.nombres || '',
-          apellidos: meta.apellidos || '',
+          nombres: String(meta.nombres || '').trim(),
+          apellidos: String(meta.apellidos || '').trim(),
           correo: cleanCorreo,
           fecha_nacimiento: cleanBirthDate,
           userAgent: req.headers['user-agent'] || '',
-          ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || ''
+          ip: req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || ''
         },
         _inicio_servidor: new Date().toISOString()
       };
@@ -187,15 +231,24 @@ module.exports = async (req, res) => {
           body: newRecord
         });
       } catch (insertErr) {
-        // En caso de colisión de índice único en base de datos
         const errMsg = String(insertErr.message || '');
         if (errMsg.includes('pruebas_nomina_cedula_key') || errMsg.includes('duplicate key value')) {
           return res.status(409).json({
-            error: 'Este número de cédula o correo electrónico ya fue registrado previamente.',
+            error: 'Este número de cédula ya fue registrado previamente.',
             field: 'cedula'
           });
         }
-        throw insertErr;
+        // Fallback automático si la tabla aún no tenía la columna opcional 'correo'
+        if (errMsg.includes('correo')) {
+          const fallbackRecord = { ...newRecord };
+          delete fallbackRecord.correo;
+          await querySupabaseAdmin('pruebas_nomina', {
+            method: 'POST',
+            body: fallbackRecord
+          });
+        } else {
+          throw insertErr;
+        }
       }
 
       return res.status(200).json({
@@ -207,13 +260,11 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Para cualquier otra acción, el candidato debe existir
     if (!current) {
       return res.status(404).json({ error: 'Registro de candidato no encontrado.' });
     }
 
-    // Si ya estaba bloqueado o finalizado en el servidor, no permitir más escrituras
-    // Excepción: permitir guardar la grabación que termina de procesarse justo después del bloqueo/finalizado
+    // Si ya estaba bloqueado o finalizado, solo permitir vincular la grabación que termina de subirse
     if (action !== 'save-recording' && (current.estado === 'BLOQUEADO' || current.estado === 'FINALIZADO')) {
       return res.status(403).json({
         error: `Operación denegada. El examen se encuentra en estado ${current.estado}.`,
@@ -221,13 +272,15 @@ module.exports = async (req, res) => {
       });
     }
 
+    const safeAnswers = sanitizeCandidateAnswers(answers);
+
     // --------------------------------------------------------------------------
-    // ACCIÓN: AUTOSAVE (Guardar respuestas parciales periódicamente)
+    // ACCIÓN: AUTOSAVE
     // --------------------------------------------------------------------------
     if (action === 'autosave') {
       const mergedAnswers = {
         ...(current.respuestas || {}),
-        ...answers,
+        ...safeAnswers,
         _ultimo_guardado: new Date().toISOString()
       };
 
@@ -243,22 +296,23 @@ module.exports = async (req, res) => {
     // ACCIÓN: BLOCK (Violación de seguridad antifraude)
     // --------------------------------------------------------------------------
     if (action === 'block') {
+      const cleanReason = String(reason || 'Acción no permitida detectada por el sistema antifraude').slice(0, 500);
       const mergedAnswers = {
         ...(current.respuestas || {}),
-        ...answers,
+        ...safeAnswers,
         _bloqueo_info: {
-          motivo: reason,
+          motivo: cleanReason,
           timestamp: new Date().toISOString()
         }
       };
 
       const blockPayload = {
         estado: 'BLOQUEADO',
-        motivo_bloqueo: reason || 'Acción no permitida detectada por el sistema antifraude',
+        motivo_bloqueo: cleanReason,
         respuestas: mergedAnswers
       };
-      if (req.body.grabacion_url) blockPayload.grabacion_url = req.body.grabacion_url;
-      if (req.body.grabacion_size) blockPayload.grabacion_size = Number(req.body.grabacion_size);
+      if (req.body.grabacion_url) blockPayload.grabacion_url = String(req.body.grabacion_url).slice(0, 1000);
+      if (req.body.grabacion_size) blockPayload.grabacion_size = Number(req.body.grabacion_size) || null;
 
       await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cleanCedula)}`, {
         method: 'PATCH',
@@ -268,18 +322,18 @@ module.exports = async (req, res) => {
       return res.status(200).json({
         success: true,
         status: 'BLOQUEADO',
-        motivo: reason,
+        motivo: cleanReason,
         fecha: new Date().toISOString()
       });
     }
 
     // --------------------------------------------------------------------------
-    // ACCIÓN: SUBMIT (Envío formal voluntario o por tiempo)
+    // ACCIÓN: SUBMIT (Envío formal voluntario o por expiración de tiempo)
     // --------------------------------------------------------------------------
     if (action === 'submit') {
       const mergedAnswers = {
         ...(current.respuestas || {}),
-        ...answers,
+        ...safeAnswers,
         _finalizado_servidor: new Date().toISOString()
       };
 
@@ -287,8 +341,8 @@ module.exports = async (req, res) => {
         estado: 'FINALIZADO',
         respuestas: mergedAnswers
       };
-      if (req.body.grabacion_url) submitPayload.grabacion_url = req.body.grabacion_url;
-      if (req.body.grabacion_size) submitPayload.grabacion_size = Number(req.body.grabacion_size);
+      if (req.body.grabacion_url) submitPayload.grabacion_url = String(req.body.grabacion_url).slice(0, 1000);
+      if (req.body.grabacion_size) submitPayload.grabacion_size = Number(req.body.grabacion_size) || null;
 
       await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cleanCedula)}`, {
         method: 'PATCH',
@@ -303,14 +357,14 @@ module.exports = async (req, res) => {
     }
 
     // --------------------------------------------------------------------------
-    // ACCIÓN: SAVE-RECORDING (Vincular URL de la grabación en Supabase Storage)
+    // ACCIÓN: SAVE-RECORDING (Vincular URL de grabación en Supabase Storage)
     // --------------------------------------------------------------------------
     if (action === 'save-recording') {
       const { grabacion_url, grabacion_size } = req.body || {};
       await querySupabaseAdmin(`pruebas_nomina?cedula=eq.${encodeURIComponent(cleanCedula)}`, {
         method: 'PATCH',
         body: {
-          grabacion_url: grabacion_url || null,
+          grabacion_url: grabacion_url ? String(grabacion_url).slice(0, 1000) : null,
           grabacion_size: grabacion_size ? Number(grabacion_size) : null
         }
       });
